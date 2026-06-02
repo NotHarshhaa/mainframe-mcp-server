@@ -34,6 +34,21 @@ function readEnv(): unknown {
       maxJobOutputLines: process.env.MAX_JOB_OUTPUT_LINES,
       maxDatasetReadLines: process.env.MAX_DATASET_READ_LINES,
       maxJesSpoolFiles: process.env.MAX_JES_SPOOL_FILES,
+      maxAuditLines: process.env.MAX_AUDIT_LINES,
+    },
+    enterprise: {
+      cmciHost: process.env.CMCI_HOST,
+      cmciPort: process.env.CMCI_PORT,
+      cmciContext: process.env.CMCI_CONTEXT,
+      cmciBasePath: process.env.CMCI_BASE_PATH,
+      db2Host: process.env.DB2_HOST,
+      db2Port: process.env.DB2_PORT,
+      db2Location: process.env.DB2_LOCATION,
+      db2BasePath: process.env.DB2_BASE_PATH,
+      smfSummaryDataset: process.env.SMF_SUMMARY_DATASET,
+      rmfMetricsEnabled: process.env.RMF_METRICS_ENABLED ?? 'true',
+      racfAuditUssPath: process.env.RACF_AUDIT_USS_PATH,
+      racfAuditDataset: process.env.RACF_AUDIT_DATASET,
     },
   };
 }

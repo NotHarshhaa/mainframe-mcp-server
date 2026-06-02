@@ -179,6 +179,98 @@ inputs for the full list.
 
 ---
 
+## CICS Tools (CMCI)
+
+Requires `CMCI_CONTEXT` (CICSplex name or region APPLID). Optionally set `CMCI_HOST` and `CMCI_PORT` (default `1490`).
+
+### `list_cics_regions`
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `context` | string | no | CMCI context. Defaults to `CMCI_CONTEXT`. |
+
+**Output:** table of APPLID, status, CICSPlex, SYSID.
+
+### `get_cics_region_status`
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `region` | string | yes | CICS region APPLID. |
+| `context` | string | no | CMCI context. |
+
+### `list_cics_transactions`
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `region` | string | yes | CICS region APPLID. |
+| `context` | string | no | CMCI context. |
+
+---
+
+## Db2 Tools (Db2 REST)
+
+Requires `DB2_LOCATION`. Optionally set `DB2_HOST` and `DB2_PORT` (default `50400`).
+
+### `list_db2_subsystems`
+
+No inputs. Lists Db2 locations available via Db2 REST.
+
+### `search_db2_catalog`
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `pattern` | string | yes | Table/view name pattern (`*`, `?`). |
+| `schema` | string | no | Creator/schema filter. |
+
+---
+
+## SMF Tools
+
+### `get_smf_metrics`
+
+No inputs. Requires `RMF_METRICS_ENABLED=true` (default) and/or `SMF_SUMMARY_DATASET`.
+
+**Output:** structured performance snapshot from z/OSMF RMF and/or SMF summary dataset.
+
+---
+
+## Security Tools
+
+### `query_racf_audit`
+
+Requires `RACF_AUDIT_USS_PATH` or `RACF_AUDIT_DATASET`.
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `user` | string | no | Filter by user id (substring). |
+| `resource` | string | no | Filter by resource name (substring). |
+| `hours` | integer | no | Look-back window (best-effort). |
+
+---
+
+## Intelligence Tools
+
+### `analyze_root_cause`
+
+AI-assisted deep analysis (structured for LLM consumption; no external AI API).
+
+| Input | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `jobId` | string | yes | — | Failed job to analyze. |
+| `lookbackHours` | integer | no | 72 | Correlation window. |
+
+**Output:** summary with confidence, failure analysis, similar incidents, correlated abends, and action items.
+
+### `predict_batch_failures`
+
+| Input | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `hours` | integer | no | 168 | Historical look-back window. |
+
+**Output:** risk-ranked jobs with scores, abend patterns, trends, and recommendations.
+
+---
+
 ## Error Codes
 
 | Code | Meaning |

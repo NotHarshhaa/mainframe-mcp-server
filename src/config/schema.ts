@@ -42,6 +42,21 @@ export const configSchema = z
       maxJobOutputLines: z.coerce.number().int().positive().default(5000),
       maxDatasetReadLines: z.coerce.number().int().positive().default(2000),
       maxJesSpoolFiles: z.coerce.number().int().positive().default(20),
+      maxAuditLines: z.coerce.number().int().positive().default(500),
+    }),
+    enterprise: z.object({
+      cmciHost: z.string().optional(),
+      cmciPort: portSchema.default(1490),
+      cmciContext: z.string().optional(),
+      cmciBasePath: z.string().default('/CICSSystemManagement'),
+      db2Host: z.string().optional(),
+      db2Port: portSchema.default(50400),
+      db2Location: z.string().optional(),
+      db2BasePath: z.string().default('/dbrest'),
+      smfSummaryDataset: z.string().optional(),
+      rmfMetricsEnabled: booleanFromEnv.default(true),
+      racfAuditUssPath: z.string().optional(),
+      racfAuditDataset: z.string().optional(),
     }),
   })
   .superRefine((cfg, ctx) => {

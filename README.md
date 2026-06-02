@@ -91,7 +91,49 @@ This is **not** a replacement for Zowe CLI or IBM Z Open Editor — it is an MCP
 | `investigate_incident` | Full incident bundle for a job |
 | `lookup_abend_code` | Abend reference lookup (S0C7, S806, S222, S0C4, …) |
 
+### CICS
+
+| Tool | Description |
+|---|---|
+| `list_cics_regions` | List CICS regions via CMCI REST |
+| `get_cics_region_status` | Status and attributes of a CICS region |
+| `list_cics_transactions` | Transaction definitions in a region |
+
+### Db2
+
+| Tool | Description |
+|---|---|
+| `list_db2_subsystems` | List Db2 locations via Db2 REST |
+| `search_db2_catalog` | Search catalog tables and views |
+
+### SMF / Security
+
+| Tool | Description |
+|---|---|
+| `get_smf_metrics` | SMF/RMF performance metrics snapshot |
+| `query_racf_audit` | Query RACF audit records from a log source |
+
+### Intelligence
+
+| Tool | Description |
+|---|---|
+| `analyze_root_cause` | Deep root-cause analysis with correlation and action items |
+| `predict_batch_failures` | Predictive risk scoring for recurring batch failures |
+
 See [docs/tools-reference.md](./docs/tools-reference.md) for full input/output details.
+
+---
+
+## Enterprise features
+
+Phase 3 capabilities (require optional enterprise configuration):
+
+- **CICS region tools** — CMCI REST integration (`CMCI_CONTEXT`, `CMCI_HOST`, `CMCI_PORT`)
+- **Db2 catalog tools** — Db2 REST SQL queries (`DB2_LOCATION`, `DB2_HOST`, `DB2_PORT`)
+- **SMF metrics exposure** — z/OSMF RMF and/or `SMF_SUMMARY_DATASET`
+- **RACF audit integration** — parse audit logs from `RACF_AUDIT_USS_PATH` or `RACF_AUDIT_DATASET`
+- **AI-assisted root cause analysis** — `analyze_root_cause` with confidence scoring and correlated incidents
+- **Predictive batch failure detection** — `predict_batch_failures` with risk levels and trends
 
 ---
 
@@ -200,6 +242,13 @@ Agent: read_dataset({ dsn: "SYS1.PROCLIB", member: "IKJEFT01" })
 ```
 User:  What is abend S0C7?
 Agent: lookup_abend_code({ code: "S0C7" })
+```
+
+**Predict which batch jobs might fail next**
+
+```
+User:  Which batch jobs are at risk of failing?
+Agent: predict_batch_failures({ hours: 168 })
 ```
 
 ---

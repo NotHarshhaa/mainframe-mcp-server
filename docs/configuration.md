@@ -57,6 +57,43 @@ Logs are written to **stderr** so they never corrupt the stdio MCP channel.
 | `MAX_JOB_OUTPUT_LINES` | `5000` | Max lines returned from a single spool DD. |
 | `MAX_DATASET_READ_LINES` | `2000` | Max lines returned from a dataset / USS file read. |
 | `MAX_JES_SPOOL_FILES` | `20` | Max spool files fetched during diagnostics. |
+| `MAX_AUDIT_LINES` | `500` | Max RACF audit log lines to parse per query. |
+
+## Enterprise (Phase 3)
+
+All enterprise variables are optional. Tools return `CONFIG_ERROR` with setup guidance when required values are missing.
+
+### CICS (CMCI)
+
+| Variable | Default | Description |
+|---|---|---|
+| `CMCI_CONTEXT` | — | CICSplex name or region APPLID (required for CICS tools). |
+| `CMCI_HOST` | `ZOSMF_HOST` | CMCI hostname. |
+| `CMCI_PORT` | `1490` | CMCI HTTPS port. |
+| `CMCI_BASE_PATH` | `/CICSSystemManagement` | CMCI REST base path. |
+
+### Db2 REST
+
+| Variable | Default | Description |
+|---|---|---|
+| `DB2_LOCATION` | — | Db2 subsystem location name (required for Db2 tools). |
+| `DB2_HOST` | `ZOSMF_HOST` | Db2 REST hostname. |
+| `DB2_PORT` | `50400` | Db2 REST port. |
+| `DB2_BASE_PATH` | `/dbrest` | Db2 REST base path. |
+
+### SMF / RMF
+
+| Variable | Default | Description |
+|---|---|---|
+| `RMF_METRICS_ENABLED` | `true` | Query z/OSMF RMF metrics when available. |
+| `SMF_SUMMARY_DATASET` | — | Optional SMF summary dataset for offline metrics. |
+
+### RACF audit
+
+| Variable | Default | Description |
+|---|---|---|
+| `RACF_AUDIT_USS_PATH` | — | USS path to RACF audit log file. |
+| `RACF_AUDIT_DATASET` | — | Sequential dataset containing audit records. |
 
 ## Example `.env`
 

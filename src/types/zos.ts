@@ -116,3 +116,49 @@ export interface AbendCodeInfo {
   commonCauses: string[];
   suggestedFix: string;
 }
+
+/** A normalized CICS region summary from CMCI. */
+export interface CicsRegion {
+  applid: string;
+  status: string;
+  cicsplex?: string;
+  sysid?: string;
+  jobname?: string;
+  jobid?: string;
+}
+
+/** A CICS transaction definition from CMCI. */
+export interface CicsTransaction {
+  tranid: string;
+  program: string;
+  status?: string;
+  taskcount?: string;
+}
+
+/** A Db2 catalog object. */
+export interface Db2CatalogEntry {
+  name: string;
+  schema: string;
+  type: string;
+}
+
+/** A batch failure risk assessment. */
+export interface FailureRisk {
+  jobName: string;
+  riskScore: number;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  failureCount: number;
+  topAbend: string | null;
+  trend: 'STABLE' | 'INCREASING' | 'DECREASING';
+  recommendation: string;
+}
+
+/** Extended root-cause analysis for AI-assisted diagnostics. */
+export interface RootCauseReport {
+  analysis: JobFailureAnalysis;
+  confidence: 'LOW' | 'MEDIUM' | 'HIGH';
+  similarIncidents: string[];
+  correlatedAbends: { code: string; count: number }[];
+  actionItems: string[];
+  summary: string;
+}

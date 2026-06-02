@@ -17,6 +17,11 @@ import { registerJobTools } from './tools/jobs/index.js';
 import { registerDatasetTools } from './tools/datasets/index.js';
 import { registerUssTools } from './tools/uss/index.js';
 import { registerOperationsTools } from './tools/operations/index.js';
+import { registerCicsTools } from './tools/cics/index.js';
+import { registerDb2Tools } from './tools/db2/index.js';
+import { registerSmfTools } from './tools/smf/index.js';
+import { registerSecurityTools } from './tools/security/index.js';
+import { registerIntelligenceTools } from './tools/intelligence/index.js';
 
 /** Build the MCP server and register all tools. */
 export function buildServer(config: AppConfig, logger: Logger): McpServer {
@@ -35,6 +40,11 @@ export function buildServer(config: AppConfig, logger: Logger): McpServer {
   registerDatasetTools(server, ctx);
   registerUssTools(server, ctx);
   registerOperationsTools(server, ctx);
+  registerCicsTools(server, ctx);
+  registerDb2Tools(server, ctx);
+  registerSmfTools(server, ctx);
+  registerSecurityTools(server, ctx);
+  registerIntelligenceTools(server, ctx);
 
   logger.info('All tool groups registered');
   return server;
