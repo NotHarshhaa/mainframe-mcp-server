@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.NotHarshhaa/mainframe-mcp-server",
-  "description": "MCP server for IBM z/OS: jobs, datasets, USS, and operational diagnostics via the Zowe SDK and z/OSMF.",
+  "description": "MCP server for IBM z/OS jobs, datasets, USS, and operational diagnostics via Zowe SDK.",
   "repository": {
     "url": "https://github.com/NotHarshhaa/mainframe-mcp-server",
     "source": "github"
   },
-  "version": "0.1.0",
+  "version": "1.0.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@notharshhaa/mainframe-mcp-server",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "transport": {
         "type": "stdio"
       },

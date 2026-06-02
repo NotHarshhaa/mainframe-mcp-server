@@ -27,3 +27,8 @@ Thumbs.db
 
 # Zowe local artifacts
 .zowe/
+
+# mcp-publisher CLI (install via scripts/install-mcp-publisher.sh)
+tools/mcp-publisher
+tools/mcp-publisher.exe
+tools/mcp-publisher.tar.gz

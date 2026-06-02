@@ -25,7 +25,6 @@
 - [Available MCP Tools](#available-mcp-tools)
 - [Usage Examples](#usage-examples)
 - [Development](#development)
-- [Publishing](#publishing)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [Security](#security)
@@ -387,37 +386,6 @@ npm run format
   }
 }
 ```
-
----
-
-## Publishing
-
-Maintainers can publish this server to npm and the [MCP Registry](https://registry.modelcontextprotocol.io).
-
-| Target | Identifier |
-|---|---|
-| npm | `@notharshhaa/mainframe-mcp-server` |
-| MCP Registry | `io.github.NotHarshhaa/mainframe-mcp-server` |
-
-**npm (first):**
-
-```bash
-npm login          # account: notharshhaa
-npm publish        # runs build via prepublishOnly
-```
-
-**MCP Registry (after npm is live):**
-
-```bash
-mcp-publisher login github
-mcp-publisher publish --dry-run
-mcp-publisher publish
-```
-
-`package.json` includes `mcpName` (must match `server.json` → `name`). Bump
-`version` in both files for each release.
-
-Full steps, troubleshooting, and client examples: [docs/publishing.md](./docs/publishing.md).
 
 ---
 
