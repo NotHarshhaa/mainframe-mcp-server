@@ -9,6 +9,10 @@
 > **An enterprise-grade Model Context Protocol (MCP) server for IBM z/OS environments.**  
 > Bridges MCP-compatible AI agents with mainframe resources — jobs, datasets, USS, and operational diagnostics — using IBM Zowe SDK as the connectivity layer.
 
+<p align="center">
+  <img src="./public/banner.png" alt="mainframe-mcp-server — Bridge AI agents with IBM z/OS via MCP and Zowe SDK" width="100%" />
+</p>
+
 ---
 
 ## Table of Contents
