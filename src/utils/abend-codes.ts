@@ -191,6 +191,30 @@ export function allAbendCodes(): AbendCodeInfo[] {
 }
 
 /**
+ * Search the abend reference table. With no query, returns all codes sorted.
+ * With a query, matches code, title, or explanation (case-insensitive).
+ */
+export function searchAbendCodes(query?: string): AbendCodeInfo[] {
+  const all = allAbendCodes();
+  const trimmed = query?.trim();
+  if (!trimmed) {
+    return all.sort((a, b) => a.code.localeCompare(b.code));
+  }
+
+  const upper = trimmed.toUpperCase();
+  const normalized = normalizeAbendCode(trimmed);
+  return all
+    .filter(
+      (entry) =>
+        entry.code === normalized ||
+        entry.code.includes(upper) ||
+        entry.title.toUpperCase().includes(upper) ||
+        entry.explanation.toUpperCase().includes(upper),
+    )
+    .sort((a, b) => a.code.localeCompare(b.code));
+}
+
+/**
  * Scan free text (e.g. spool output) for the first recognizable abend code.
  * Returns the normalized code string or `null`.
  */

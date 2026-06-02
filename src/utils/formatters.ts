@@ -1,13 +1,43 @@
 /**
  * Response formatters that turn normalized z/OS objects into compact,
- * AI-friendly text. Box-drawing tables mirror the examples in the README.
+ * AI-friendly text. Box-drawing tables and numbered sections give agents
+ * predictable structure to parse across every tool.
  */
-import type { Dataset, Job, JobFailureAnalysis, Member, SpoolFile, UssEntry } from '../types/zos.js';
+import type {
+  AbendCodeInfo,
+  Dataset,
+  Job,
+  JobFailureAnalysis,
+  Member,
+  SpoolFile,
+  UssEntry,
+} from '../types/zos.js';
 import type { TextToolResult } from '../types/tools.js';
+
+/** A titled block inside a structured tool response. */
+export interface StructuredSection {
+  heading: string;
+  body: string;
+}
 
 /** Build a standard (non-error) MCP text result. */
 export function textResult(text: string): TextToolResult {
   return { content: [{ type: 'text', text }] };
+}
+
+/**
+ * Render a multi-section response with a title banner and numbered sections.
+ * Used by operational/diagnostic tools so agents get a consistent layout.
+ */
+export function formatStructuredResponse(title: string, sections: StructuredSection[]): string {
+  const bannerWidth = Math.min(Math.max(title.length, 40), 64);
+  const lines = [title, '═'.repeat(bannerWidth), ''];
+
+  sections.forEach(({ heading, body }, index) => {
+    lines.push(`${index + 1}. ${heading.toUpperCase()}`, body, '');
+  });
+
+  return lines.join('\n').trimEnd();
 }
 
 /**
@@ -156,4 +186,30 @@ export function formatFailureAnalysis(analysis: JobFailureAnalysis): string {
   }
   lines.push(`Fix:     ${analysis.suggestedFix}`);
   return lines.join('\n');
+}
+
+/** Format a single abend-code reference entry for agent consumption. */
+export function formatAbendInfo(info: AbendCodeInfo): string {
+  const causeLines = info.commonCauses.map((cause) => `  • ${cause}`).join('\n');
+  return [
+    `Code:     ${info.code}`,
+    `Title:    ${info.title}`,
+    `Category: ${info.category}`,
+    '',
+    'Explanation:',
+    info.explanation,
+    '',
+    'Common causes:',
+    causeLines,
+    '',
+    `Fix:      ${info.suggestedFix}`,
+  ].join('\n');
+}
+
+/** Format a catalog of abend codes as a compact table. */
+export function formatAbendCatalog(entries: AbendCodeInfo[]): string {
+  if (entries.length === 0) return 'No abend codes matched the search.';
+  const rows = entries.map((entry) => [entry.code, entry.category, entry.title]);
+  const header = `Abend Code Reference (${entries.length} entries)\n\n`;
+  return header + renderTable(['Code', 'Category', 'Title'], rows);
 }

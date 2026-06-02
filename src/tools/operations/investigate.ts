@@ -12,6 +12,7 @@ import {
   formatFailureAnalysis,
   formatJobStatus,
   formatSpoolFiles,
+  formatStructuredResponse,
   textResult,
   truncateLines,
 } from '../../utils/formatters.js';
@@ -33,31 +34,27 @@ export const registerInvestigateTool: ToolRegistrar = (server, ctx) => {
         analyzeJobFailure(ctx, jobId),
       ]);
 
-      const sections: string[] = [
-        `INCIDENT INVESTIGATION — ${job.jobName} (${job.jobId})`,
-        '═'.repeat(60),
-        '',
-        '1. STATUS',
-        formatJobStatus(job),
-        '',
-        '2. ROOT-CAUSE ANALYSIS',
-        formatFailureAnalysis(analysis),
-        '',
-        '3. SPOOL INVENTORY',
-        formatSpoolFiles(job.jobName, job.jobId, spoolFiles),
+      const sections = [
+        { heading: 'Status', body: formatJobStatus(job) },
+        { heading: 'Root-cause analysis', body: formatFailureAnalysis(analysis) },
+        { heading: 'Spool inventory', body: formatSpoolFiles(job.jobName, job.jobId, spoolFiles) },
       ];
 
-      // Include a short diagnostic excerpt for failed jobs to ground the analysis.
       if (analysis.abendCode || analysis.failedStep) {
         const diag = await fetchDiagnosticSpool(ctx, job.jobName, job.jobId);
         if (diag.length > 0) {
           const excerpt = truncateLines(diag[0].text, 60).text;
-          sections.push('', `4. DIAGNOSTIC EXCERPT (${diag[0].ddName})`, excerpt);
+          sections.push({
+            heading: `Diagnostic excerpt (${diag[0].ddName})`,
+            body: excerpt,
+          });
         }
       }
 
       ctx.logger.debug({ jobId, abendCode: analysis.abendCode }, 'investigate_incident');
-      return textResult(sections.join('\n'));
+      return textResult(
+        formatStructuredResponse(`Incident Investigation — ${job.jobName} (${job.jobId})`, sections),
+      );
     }),
   );
 };

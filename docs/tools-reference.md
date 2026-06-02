@@ -158,8 +158,24 @@ counts of active/queued/failed jobs, and the top abend codes.
 |---|---|---|---|
 | `jobId` | string | yes | JES job id to investigate. |
 
-**Output:** a multi-section bundle — status, root-cause analysis, spool
+**Output:** a numbered multi-section bundle — status, root-cause analysis, spool
 inventory, and a diagnostic spool excerpt.
+
+### `lookup_abend_code`
+
+Look up abend codes from the built-in reference table (no z/OSMF call required).
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `code` | string | no | Code to look up, e.g. `S806`, `0C7`, `U0100`. |
+| `search` | string | no | Filter the catalog by code, title, or explanation. |
+
+**Output:** detailed reference entry for a single code, or a catalog table when
+`code` is omitted. Includes explanation, common causes, and suggested fix.
+
+Known codes include **S0C1**, **S0C4**, **S0C7**, **S806**, **S222**, **S322**,
+**S913**, **U0100**, **U4038**, and others — see `lookup_abend_code` with no
+inputs for the full list.
 
 ---
 

@@ -19,7 +19,7 @@
   <a href="./LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-FBBF24?style=for-the-badge" />
   </a>
-  <img src="https://img.shields.io/badge/Status-Prototype-F97316?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Status-Stable-22C55E?style=for-the-badge" />
 </p>
 
 > **An enterprise-grade Model Context Protocol (MCP) server for IBM z/OS environments.**  
@@ -89,8 +89,22 @@ This is **not** a replacement for Zowe CLI or IBM Z Open Editor — it is an MCP
 | `summarize_abends` | Abend code breakdown across recent jobs |
 | `system_health_summary` | Active, queued, and failed job snapshot |
 | `investigate_incident` | Full incident bundle for a job |
+| `lookup_abend_code` | Abend reference lookup (S0C7, S806, S222, S0C4, …) |
 
 See [docs/tools-reference.md](./docs/tools-reference.md) for full input/output details.
+
+---
+
+## Operational intelligence
+
+Phase 2 capabilities built into the server:
+
+- **USS tools** — list, read, and search USS paths
+- **`investigate_incident`** — status, root-cause analysis, spool inventory, and diagnostic excerpt in one call
+- **`system_health_summary`** — HEALTHY / DEGRADED / CRITICAL snapshot with top abend codes
+- **Abend code lookup** — curated reference for common system and user abends via `lookup_abend_code`
+- **Structured responses** — numbered sections and tables designed for AI agent parsing
+- **Integration tests** — optional sandbox suite (`RUN_INTEGRATION=1 npm run test:integration`)
 
 ---
 
@@ -179,6 +193,13 @@ Agent: find_failed_jobs({ hours: 24 })
 ```
 User:  Show me SYS1.PROCLIB(IKJEFT01)
 Agent: read_dataset({ dsn: "SYS1.PROCLIB", member: "IKJEFT01" })
+```
+
+**What does abend S0C7 mean?**
+
+```
+User:  What is abend S0C7?
+Agent: lookup_abend_code({ code: "S0C7" })
 ```
 
 ---

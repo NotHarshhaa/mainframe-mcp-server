@@ -1,10 +1,13 @@
 import {
+  formatAbendCatalog,
+  formatAbendInfo,
   formatFailureAnalysis,
   formatJobList,
+  formatStructuredResponse,
   renderTable,
   truncateLines,
 } from '../../../src/utils/formatters.js';
-import type { Job, JobFailureAnalysis } from '../../../src/types/zos.js';
+import type { AbendCodeInfo, Job, JobFailureAnalysis } from '../../../src/types/zos.js';
 
 describe('formatters', () => {
   describe('renderTable', () => {
@@ -82,6 +85,52 @@ describe('formatters', () => {
       expect(out).toContain('Job:     PAYJOB01 (JOB01234)');
       expect(out).toContain('Step:    STEP030 - LOADPGM');
       expect(out).toContain('Fix:     Verify the module is linked.');
+    });
+  });
+
+  describe('formatStructuredResponse', () => {
+    it('renders a titled response with numbered sections', () => {
+      const out = formatStructuredResponse('System Health Summary', [
+        { heading: 'Overview', body: 'status: HEALTHY' },
+        { heading: 'Top abends', body: 'S806: 2' },
+      ]);
+      expect(out).toContain('System Health Summary');
+      expect(out).toContain('1. OVERVIEW');
+      expect(out).toContain('2. TOP ABENDS');
+    });
+  });
+
+  describe('formatAbendInfo', () => {
+    it('includes explanation, causes, and fix', () => {
+      const info: AbendCodeInfo = {
+        code: 'S806',
+        title: 'Module Not Found',
+        category: 'system',
+        explanation: 'Load module missing.',
+        commonCauses: ['Missing STEPLIB'],
+        suggestedFix: 'Check libraries.',
+      };
+      const out = formatAbendInfo(info);
+      expect(out).toContain('Code:     S806');
+      expect(out).toContain('• Missing STEPLIB');
+      expect(out).toContain('Fix:      Check libraries.');
+    });
+  });
+
+  describe('formatAbendCatalog', () => {
+    it('renders a table of abend codes', () => {
+      const out = formatAbendCatalog([
+        {
+          code: 'S0C7',
+          title: 'Data Exception',
+          category: 'system',
+          explanation: 'x',
+          commonCauses: [],
+          suggestedFix: 'y',
+        },
+      ]);
+      expect(out).toContain('S0C7');
+      expect(out).toContain('Data Exception');
     });
   });
 });

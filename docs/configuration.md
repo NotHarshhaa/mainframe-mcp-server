@@ -61,3 +61,19 @@ Logs are written to **stderr** so they never corrupt the stdio MCP channel.
 ## Example `.env`
 
 See [`.env.example`](../.env.example) for a complete starting template.
+
+## Integration tests (z/OSMF sandbox)
+
+Integration tests are **skipped by default** in CI. To run against a live sandbox:
+
+```bash
+RUN_INTEGRATION=1 npm run test:integration
+```
+
+| Variable | Required | Description |
+|---|---|---|
+| `RUN_INTEGRATION` | yes | Set to `1` to enable integration tests. |
+| `ZOSMF_HOST` | yes | Same as production config. |
+| `ZOSMF_USER` / `ZOSMF_PASSWORD` | yes* | Credentials for the sandbox. |
+| `ZOSMF_DATASET_PATTERN` | no | Dataset pattern for catalog tests (defaults to `<user>.*`). |
+| `ZOSMF_USS_PATH` | no | USS directory for listing tests (defaults to `/u/<user>`). |

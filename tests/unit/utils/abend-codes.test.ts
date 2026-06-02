@@ -3,6 +3,7 @@ import {
   extractAbendCode,
   lookupAbend,
   normalizeAbendCode,
+  searchAbendCodes,
 } from '../../../src/utils/abend-codes.js';
 
 describe('abend-codes', () => {
@@ -61,6 +62,24 @@ describe('abend-codes', () => {
         expect(entry.code).toMatch(/^[SU]/);
         expect(entry.suggestedFix.length).toBeGreaterThan(0);
       }
+    });
+  });
+
+  describe('searchAbendCodes', () => {
+    it('returns all codes sorted when no query is given', () => {
+      const results = searchAbendCodes();
+      expect(results.length).toBeGreaterThan(5);
+      expect(results[0].code.localeCompare(results[1].code)).toBeLessThanOrEqual(0);
+    });
+
+    it('finds codes by partial code match', () => {
+      const results = searchAbendCodes('806');
+      expect(results.some((entry) => entry.code === 'S806')).toBe(true);
+    });
+
+    it('finds codes by title keyword', () => {
+      const results = searchAbendCodes('data exception');
+      expect(results.some((entry) => entry.code === 'S0C7')).toBe(true);
     });
   });
 });

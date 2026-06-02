@@ -4,10 +4,10 @@
 import type { ToolRegistrar } from '../../types/tools.js';
 import { GetJobs } from '@zowe/zos-jobs-for-zowe-sdk';
 import { safeHandler } from '../../utils/errors.js';
-import { renderTable, textResult } from '../../utils/formatters.js';
+import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { isFailedJob, normalizeJob } from '../jobs/shared.js';
 import { aggregateAbends } from './shared.js';
-import { extractAbendCode } from '../../utils/abend-codes.js';
+import { extractAbendCode, lookupAbend } from '../../utils/abend-codes.js';
 
 export const registerSystemHealthTool: ToolRegistrar = (server, ctx) => {
   server.tool(
@@ -26,11 +26,16 @@ export const registerSystemHealthTool: ToolRegistrar = (server, ctx) => {
         job,
         abendCode: extractAbendCode(job.returnCode ?? ''),
       }));
-      const topAbends = aggregateAbends(failedSummaries).slice(0, 3);
+      const topAbends = aggregateAbends(failedSummaries).slice(0, 5);
+
+      let status = 'HEALTHY';
+      if (failed.length > 0) status = 'DEGRADED';
+      if (failed.length >= 5) status = 'CRITICAL';
 
       const overview = renderTable(
         ['Metric', 'Value'],
         [
+          ['Overall status', status],
           ['Total jobs visible', String(jobs.length)],
           ['Active', String(active.length)],
           ['Awaiting execution (INPUT)', String(inputQ.length)],
@@ -38,21 +43,24 @@ export const registerSystemHealthTool: ToolRegistrar = (server, ctx) => {
         ],
       );
 
-      let status = 'HEALTHY';
-      if (failed.length > 0) status = 'DEGRADED';
-      if (failed.length >= 5) status = 'CRITICAL';
-
-      const lines = [`System Health: ${status}`, '', overview];
-
-      if (topAbends.length > 0) {
-        lines.push('', 'Top abend codes:');
-        for (const entry of topAbends) {
-          lines.push(`  ${entry.code}: ${entry.count}`);
-        }
-      }
+      const abendBody =
+        topAbends.length === 0
+          ? 'No failed jobs with recognizable abend codes.'
+          : renderTable(
+              ['Abend Code', 'Count', 'Description'],
+              topAbends.map((entry) => {
+                const info = lookupAbend(entry.code);
+                return [entry.code, String(entry.count), info?.title ?? '(no reference entry)'];
+              }),
+            );
 
       ctx.logger.debug({ status, failed: failed.length }, 'system_health_summary');
-      return textResult(lines.join('\n'));
+      return textResult(
+        formatStructuredResponse('System Health Summary', [
+          { heading: 'Overview', body: overview },
+          { heading: 'Top abend codes', body: abendBody },
+        ]),
+      );
     }),
   );
 };
