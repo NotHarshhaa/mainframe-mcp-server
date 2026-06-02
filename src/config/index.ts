@@ -50,6 +50,15 @@ function readEnv(): unknown {
       racfAuditUssPath: process.env.RACF_AUDIT_USS_PATH,
       racfAuditDataset: process.env.RACF_AUDIT_DATASET,
     },
+    security: {
+      readOnly: process.env.SECURITY_READ_ONLY ?? 'false',
+      allowedTools: process.env.SECURITY_ALLOWED_TOOLS,
+      blockedTools: process.env.SECURITY_BLOCKED_TOOLS,
+      allowedDatasetPatterns: process.env.SECURITY_ALLOWED_DATASET_PATTERNS,
+      allowedUssPaths: process.env.SECURITY_ALLOWED_USS_PATHS,
+      auditLogging: process.env.SECURITY_AUDIT_LOGGING ?? 'true',
+      maxJclBytes: process.env.SECURITY_MAX_JCL_BYTES,
+    },
   };
 }
 

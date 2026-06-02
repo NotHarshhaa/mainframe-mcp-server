@@ -72,3 +72,13 @@ export async function readDataset(
   }
   return buffer.toString('utf8');
 }
+
+/** Fetch catalog attributes for an exact dataset name. */
+export async function getDatasetInfo(ctx: ToolContext, dsn: string): Promise<Dataset> {
+  const results = await listDatasets(ctx, dsn);
+  const match = results.find((entry) => entry.name.toUpperCase() === dsn.trim().toUpperCase());
+  if (!match) {
+    throw new NotFoundError(`Dataset ${dsn} was not found in the catalog.`, { dsn });
+  }
+  return match;
+}

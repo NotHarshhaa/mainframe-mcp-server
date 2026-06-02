@@ -1,13 +1,10 @@
 /**
  * `search_dataset` — search for datasets by pattern.
- *
- * Thin wrapper around the catalog list that accepts a free-form dataset
- * pattern (with wildcards) rather than requiring an explicit HLQ split.
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
 import { formatDatasetList, textResult } from '../../utils/formatters.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { listDatasets } from './shared.js';
 
 const inputShape = {
@@ -22,10 +19,15 @@ export const registerSearchDatasetTool: ToolRegistrar = (server, ctx) => {
     'search_dataset',
     'Search the catalog for datasets matching a wildcard pattern.',
     inputShape,
-    safeHandler(async ({ pattern }) => {
-      const datasets = await listDatasets(ctx, pattern);
-      ctx.logger.debug({ pattern, count: datasets.length }, 'search_dataset');
-      return textResult(formatDatasetList(datasets));
-    }),
+    securedHandler(
+      ctx,
+      'search_dataset',
+      async ({ pattern }) => {
+        const datasets = await listDatasets(ctx, pattern);
+        ctx.logger.debug({ pattern, count: datasets.length }, 'search_dataset');
+        return textResult(formatDatasetList(datasets));
+      },
+      ({ pattern }) => ({ dataset: pattern.split('.')[0] ?? pattern }),
+    ),
   );
 };

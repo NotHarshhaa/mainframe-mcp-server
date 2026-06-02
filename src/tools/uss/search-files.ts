@@ -3,9 +3,9 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
 import { formatUssListing, textResult } from '../../utils/formatters.js';
 import { globToRegExp } from '../../utils/glob.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { listUssDirectory } from './shared.js';
 
 const inputShape = {
@@ -21,17 +21,22 @@ export const registerSearchFilesTool: ToolRegistrar = (server, ctx) => {
     'search_uss_files',
     'Search for files within a USS directory matching a wildcard name pattern.',
     inputShape,
-    safeHandler(async ({ path, pattern }) => {
-      const entries = await listUssDirectory(ctx, path);
-      const regex = globToRegExp(pattern, { caseInsensitive: true });
-      const matched = entries.filter((entry) => regex.test(entry.name));
-      ctx.logger.debug({ path, pattern, count: matched.length }, 'search_uss_files');
+    securedHandler(
+      ctx,
+      'search_uss_files',
+      async ({ path, pattern }) => {
+        const entries = await listUssDirectory(ctx, path);
+        const regex = globToRegExp(pattern, { caseInsensitive: true });
+        const matched = entries.filter((entry) => regex.test(entry.name));
+        ctx.logger.debug({ path, pattern, count: matched.length }, 'search_uss_files');
 
-      if (matched.length === 0) {
-        return textResult(`No files in ${path} matched pattern "${pattern}".`);
-      }
+        if (matched.length === 0) {
+          return textResult(`No files in ${path} matched pattern "${pattern}".`);
+        }
 
-      return textResult(formatUssListing(path, matched));
-    }),
+        return textResult(formatUssListing(path, matched));
+      },
+      ({ path }) => ({ ussPath: path }),
+    ),
   );
 };

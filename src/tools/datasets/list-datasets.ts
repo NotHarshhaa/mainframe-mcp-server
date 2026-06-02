@@ -3,9 +3,9 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
 import { formatDatasetList, textResult } from '../../utils/formatters.js';
 import { buildDatasetPattern } from '../../utils/glob.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { listDatasets } from './shared.js';
 
 const inputShape = {
@@ -21,11 +21,16 @@ export const registerListDatasetsTool: ToolRegistrar = (server, ctx) => {
     'list_datasets',
     'List catalog datasets matching a high-level qualifier (and optional pattern).',
     inputShape,
-    safeHandler(async ({ hlq, pattern }) => {
-      const search = buildDatasetPattern(hlq, pattern);
-      const datasets = await listDatasets(ctx, search);
-      ctx.logger.debug({ search, count: datasets.length }, 'list_datasets');
-      return textResult(formatDatasetList(datasets));
-    }),
+    securedHandler(
+      ctx,
+      'list_datasets',
+      async ({ hlq, pattern }) => {
+        const search = buildDatasetPattern(hlq, pattern);
+        const datasets = await listDatasets(ctx, search);
+        ctx.logger.debug({ search, count: datasets.length }, 'list_datasets');
+        return textResult(formatDatasetList(datasets));
+      },
+      ({ hlq }) => ({ dataset: hlq }),
+    ),
   );
 };

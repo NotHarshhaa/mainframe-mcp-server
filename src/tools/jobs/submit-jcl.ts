@@ -4,8 +4,10 @@
 import { z } from 'zod';
 import { SubmitJobs } from '@zowe/zos-jobs-for-zowe-sdk';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { ValidationError, safeHandler } from '../../utils/errors.js';
+import { ValidationError } from '../../utils/errors.js';
 import { formatJobStatus, textResult } from '../../utils/formatters.js';
+import { assertJclSizeAllowed } from '../../utils/security.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { normalizeJob } from './shared.js';
 
 const inputShape = {
@@ -20,11 +22,13 @@ export const registerSubmitJclTool: ToolRegistrar = (server, ctx) => {
     'submit_jcl',
     'Submit inline JCL to JES for execution and return the new job identifier.',
     inputShape,
-    safeHandler(async ({ jcl }) => {
+    securedHandler(ctx, 'submit_jcl', async ({ jcl }) => {
       const normalized = jcl.replace(/\r\n/g, '\n').trim();
       if (!/^\/\//.test(normalized)) {
         throw new ValidationError('JCL must begin with a "//" JOB statement.');
       }
+
+      assertJclSizeAllowed(ctx.config, normalized);
 
       const submitted = await SubmitJobs.submitJcl(ctx.session, normalized);
       const job = normalizeJob(submitted);

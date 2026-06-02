@@ -3,8 +3,8 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
-import { textResult, formatContentHeader, truncateLines } from '../../utils/formatters.js';
+import { formatContentHeader, textResult, truncateLines } from '../../utils/formatters.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { readUssFile } from './shared.js';
 
 const inputShape = {
@@ -16,15 +16,25 @@ export const registerReadFileTool: ToolRegistrar = (server, ctx) => {
     'read_uss_file',
     'Read the contents of a USS file (output is line-capped for safety).',
     inputShape,
-    safeHandler(async ({ path }) => {
-      const raw = await readUssFile(ctx, path);
-      const { text, truncated, totalLines } = truncateLines(
-        raw,
-        ctx.config.limits.maxDatasetReadLines,
-      );
-      ctx.logger.debug({ path, totalLines, truncated }, 'read_uss_file');
-      const header = formatContentHeader(path, truncated, totalLines, ctx.config.limits.maxDatasetReadLines);
-      return textResult(header + text);
-    }),
+    securedHandler(
+      ctx,
+      'read_uss_file',
+      async ({ path }) => {
+        const raw = await readUssFile(ctx, path);
+        const { text, truncated, totalLines } = truncateLines(
+          raw,
+          ctx.config.limits.maxDatasetReadLines,
+        );
+        ctx.logger.debug({ path, totalLines, truncated }, 'read_uss_file');
+        const header = formatContentHeader(
+          path,
+          truncated,
+          totalLines,
+          ctx.config.limits.maxDatasetReadLines,
+        );
+        return textResult(header + text);
+      },
+      ({ path }) => ({ ussPath: path }),
+    ),
   );
 };

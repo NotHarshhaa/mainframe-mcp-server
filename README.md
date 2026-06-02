@@ -63,6 +63,7 @@ This is **not** a replacement for Zowe CLI or IBM Z Open Editor — it is an MCP
 | `get_job_output` | Spool inventory or DD content |
 | `submit_jcl` | Submit inline JCL |
 | `analyze_job_failure` | Abend code, failing step, and suggested fix |
+| `get_job_jcl` | Retrieve submitted JCL from job spool |
 
 ### Datasets
 
@@ -72,6 +73,7 @@ This is **not** a replacement for Zowe CLI or IBM Z Open Editor — it is an MCP
 | `read_dataset` | Read a sequential dataset or PDS member |
 | `search_dataset` | Search datasets by pattern |
 | `search_members` | Search or list PDS members |
+| `get_dataset_info` | Catalog attributes without reading content |
 
 ### USS
 
@@ -90,6 +92,9 @@ This is **not** a replacement for Zowe CLI or IBM Z Open Editor — it is an MCP
 | `system_health_summary` | Active, queued, and failed job snapshot |
 | `investigate_incident` | Full incident bundle for a job |
 | `lookup_abend_code` | Abend reference lookup (S0C7, S806, S222, S0C4, …) |
+| `verify_zosmf_connection` | Test z/OSMF connectivity and auth |
+| `compare_jobs` | Side-by-side comparison of two jobs |
+| `get_user_jobs_summary` | Job counts by status for an owner |
 
 ### CICS
 
@@ -112,6 +117,7 @@ This is **not** a replacement for Zowe CLI or IBM Z Open Editor — it is an MCP
 |---|---|
 | `get_smf_metrics` | SMF/RMF performance metrics snapshot |
 | `query_racf_audit` | Query RACF audit records from a log source |
+| `security_posture_summary` | Report active security controls and recommendations |
 
 ### Intelligence
 
@@ -124,7 +130,32 @@ See [docs/tools-reference.md](./docs/tools-reference.md) for full input/output d
 
 ---
 
-## Enterprise features
+## Enterprise security
+
+Yes — this server is designed for enterprise use, with controls big companies typically require. Security is enforced at the **MCP server layer** (in addition to RACF/z/OSMF permissions on the mainframe itself).
+
+| Control | Env variable | Purpose |
+|---|---|---|
+| Read-only mode | `SECURITY_READ_ONLY=true` | Blocks `submit_jcl` and other write tools |
+| Tool allowlist | `SECURITY_ALLOWED_TOOLS` | Only permit specific tools (least privilege) |
+| Tool blocklist | `SECURITY_BLOCKED_TOOLS` | Explicitly deny dangerous tools |
+| Dataset boundaries | `SECURITY_ALLOWED_DATASET_PATTERNS` | Restrict dataset access by HLQ pattern |
+| USS boundaries | `SECURITY_ALLOWED_USS_PATHS` | Restrict USS paths by prefix |
+| Audit logging | `SECURITY_AUDIT_LOGGING=true` | Log every tool call (credentials redacted) |
+| JCL size limit | `SECURITY_MAX_JCL_BYTES` | Cap inline JCL submit size |
+| TLS verification | `ZOSMF_REJECT_UNAUTHORIZED=true` | Enforce certificate validation |
+
+Use `security_posture_summary` to inspect which controls are active and get hardening recommendations.
+
+**Important:** Enterprise deployment also requires:
+- A dedicated **service account** on z/OS with least-privilege RACF profiles
+- **Secrets** in a vault (not plain env vars in production)
+- **Network** restrictions (z/OSMF behind API gateway / VPN)
+- **SSE transport** placed behind auth proxy if exposed beyond localhost
+
+The mainframe still enforces the final authorization — this server adds guardrails so AI agents cannot exceed configured boundaries.
+
+---
 
 Phase 3 capabilities (require optional enterprise configuration):
 

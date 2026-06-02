@@ -57,6 +57,13 @@ export class LimitExceededError extends MainframeMcpError {
   }
 }
 
+/** Operation blocked by enterprise security policy. */
+export class ForbiddenError extends MainframeMcpError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(message, 'FORBIDDEN', details);
+  }
+}
+
 /** Wrap an unknown thrown value into a {@link MainframeMcpError}. */
 export function normalizeError(err: unknown): MainframeMcpError {
   if (err instanceof MainframeMcpError) return err;

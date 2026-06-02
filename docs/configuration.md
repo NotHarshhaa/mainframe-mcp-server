@@ -95,6 +95,18 @@ All enterprise variables are optional. Tools return `CONFIG_ERROR` with setup gu
 | `RACF_AUDIT_USS_PATH` | — | USS path to RACF audit log file. |
 | `RACF_AUDIT_DATASET` | — | Sequential dataset containing audit records. |
 
+## Enterprise security controls
+
+| Variable | Default | Description |
+|---|---|---|
+| `SECURITY_READ_ONLY` | `false` | When `true`, blocks write tools like `submit_jcl`. |
+| `SECURITY_ALLOWED_TOOLS` | — | Comma-separated allowlist of MCP tool names. |
+| `SECURITY_BLOCKED_TOOLS` | — | Comma-separated blocklist of MCP tool names. |
+| `SECURITY_ALLOWED_DATASET_PATTERNS` | — | Comma-separated dataset patterns (e.g. `USERDEV.*,SYS1.*`). |
+| `SECURITY_ALLOWED_USS_PATHS` | — | Comma-separated USS path prefixes. |
+| `SECURITY_AUDIT_LOGGING` | `true` | Log every tool invocation to stderr (SIEM-friendly JSON). |
+| `SECURITY_MAX_JCL_BYTES` | `65536` | Maximum inline JCL size for `submit_jcl`. |
+
 ## Example `.env`
 
 See [`.env.example`](../.env.example) for a complete starting template.

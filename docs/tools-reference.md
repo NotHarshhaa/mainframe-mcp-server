@@ -280,4 +280,5 @@ AI-assisted deep analysis (structured for LLM consumption; no external AI API).
 | `NOT_FOUND` | The requested job/dataset/file was not found. |
 | `VALIDATION_ERROR` | Tool input failed validation. |
 | `LIMIT_EXCEEDED` | A safety limit was exceeded. |
+| `FORBIDDEN` | Blocked by enterprise security policy (allowlist, read-only, resource boundary). |
 | `UNEXPECTED_ERROR` | An unclassified error. |

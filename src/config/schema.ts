@@ -58,6 +58,15 @@ export const configSchema = z
       racfAuditUssPath: z.string().optional(),
       racfAuditDataset: z.string().optional(),
     }),
+    security: z.object({
+      readOnly: booleanFromEnv.default(false),
+      allowedTools: z.string().optional(),
+      blockedTools: z.string().optional(),
+      allowedDatasetPatterns: z.string().optional(),
+      allowedUssPaths: z.string().optional(),
+      auditLogging: booleanFromEnv.default(true),
+      maxJclBytes: z.coerce.number().int().positive().default(65536),
+    }),
   })
   .superRefine((cfg, ctx) => {
     const hasBasic = Boolean(cfg.zosmf.user && cfg.zosmf.password);
