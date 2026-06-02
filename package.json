@@ -1,0 +1,79 @@
+{
+  "name": "@notharshhaa/mainframe-mcp-server",
+  "version": "0.1.0",
+  "mcpName": "io.github.NotHarshhaa/mainframe-mcp-server",
+  "description": "An enterprise-grade Model Context Protocol (MCP) server for IBM z/OS environments, built on the IBM Zowe SDK.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NotHarshhaa/mainframe-mcp-server.git"
+  },
+  "homepage": "https://github.com/NotHarshhaa/mainframe-mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/NotHarshhaa/mainframe-mcp-server/issues"
+  },
+  "author": "notharshhaa",
+  "bin": {
+    "mainframe-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    ".env.example"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "test": "jest --testPathPattern=tests/unit",
+    "test:coverage": "jest --coverage --testPathPattern=tests/unit",
+    "test:integration": "jest --testPathPattern=tests/integration",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "mainframe",
+    "zos",
+    "zowe",
+    "ibm-z",
+    "zosmf",
+    "ai"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.0",
+    "@zowe/core-for-zowe-sdk": "^8.0.0",
+    "@zowe/imperative": "^8.0.0",
+    "@zowe/zos-files-for-zowe-sdk": "^8.0.0",
+    "@zowe/zos-jobs-for-zowe-sdk": "^8.0.0",
+    "@zowe/zosmf-for-zowe-sdk": "^8.0.0",
+    "dotenv": "^16.4.5",
+    "pino": "^9.3.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.3.3",
+    "ts-jest": "^29.2.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.5.3"
+  }
+}

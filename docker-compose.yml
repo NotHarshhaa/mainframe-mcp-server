@@ -1,0 +1,20 @@
+services:
+  mainframe-mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mainframe-mcp-server:latest
+    container_name: mainframe-mcp-server
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Override transport here if you want SSE instead of stdio
+      MCP_TRANSPORT: ${MCP_TRANSPORT:-sse}
+      MCP_SSE_PORT: ${MCP_SSE_PORT:-3000}
+    ports:
+      # Only relevant when MCP_TRANSPORT=sse
+      - "${MCP_SSE_PORT:-3000}:${MCP_SSE_PORT:-3000}"
+    # stdio transport requires an attached client; keep STDIN open
+    stdin_open: true
+    tty: true

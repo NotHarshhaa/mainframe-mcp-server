@@ -1,0 +1,78 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.NotHarshhaa/mainframe-mcp-server",
+  "description": "MCP server for IBM z/OS: jobs, datasets, USS, and operational diagnostics via the Zowe SDK and z/OSMF.",
+  "repository": {
+    "url": "https://github.com/NotHarshhaa/mainframe-mcp-server",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@notharshhaa/mainframe-mcp-server",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "ZOSMF_HOST",
+          "description": "z/OSMF hostname or IP address",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "ZOSMF_PORT",
+          "description": "z/OSMF HTTPS port (default 443)",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "ZOSMF_USER",
+          "description": "z/OS user id (required with ZOSMF_PASSWORD unless ZOSMF_TOKEN is set)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "ZOSMF_PASSWORD",
+          "description": "Password for basic auth (required with ZOSMF_USER unless ZOSMF_TOKEN is set)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "ZOSMF_TOKEN",
+          "description": "Auth token (alternative to user/password)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "ZOSMF_TOKEN_TYPE",
+          "description": "Token type when using ZOSMF_TOKEN (e.g. LTPA2)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "ZOSMF_REJECT_UNAUTHORIZED",
+          "description": "Verify TLS certificates (true in production)",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
+          "name": "LOG_LEVEL",
+          "description": "Log level: info, debug, warn, error, etc.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}
