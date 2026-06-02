@@ -1,6 +1,6 @@
 {
   "name": "@notharshhaa/mainframe-mcp-server",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "mcpName": "io.github.NotHarshhaa/mainframe-mcp-server",
   "description": "An enterprise-grade Model Context Protocol (MCP) server for IBM z/OS environments, built on the IBM Zowe SDK.",
   "license": "MIT",

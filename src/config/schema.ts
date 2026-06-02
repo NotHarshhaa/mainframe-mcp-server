@@ -31,7 +31,7 @@ export const configSchema = z
     }),
     mcp: z.object({
       name: z.string().default('mainframe-mcp-server'),
-      version: z.string().default('1.0.0'),
+      version: z.string().default('2.0.0'),
       transport: z.enum(['stdio', 'sse']).default('stdio'),
       ssePort: portSchema.default(3000),
     }),
