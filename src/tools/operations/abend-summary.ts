@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { safeHandler } from '../../utils/errors.js';
-import { renderTable, textResult } from '../../utils/formatters.js';
+import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { lookupAbend } from '../../utils/abend-codes.js';
 import { aggregateAbends, findFailedJobs } from './shared.js';
 
@@ -39,8 +39,14 @@ export const registerAbendSummaryTool: ToolRegistrar = (server, ctx) => {
 
       ctx.logger.debug({ window, codes: aggregated.length }, 'summarize_abends');
 
-      const header = `Abend Summary — Last ${window} Hours (${failures.length} failed jobs)\n\n`;
-      return textResult(header + renderTable(['Abend Code', 'Count', 'Description'], rows));
+      return textResult(
+        formatStructuredResponse(`Abend Summary — Last ${window} Hours`, [
+          {
+            heading: `${failures.length} failed job(s), ${aggregated.length} distinct code(s)`,
+            body: renderTable(['Abend Code', 'Count', 'Description'], rows),
+          },
+        ]),
+      );
     }),
   );
 };

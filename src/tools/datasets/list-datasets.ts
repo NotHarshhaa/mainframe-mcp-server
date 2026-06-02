@@ -5,6 +5,7 @@ import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { safeHandler } from '../../utils/errors.js';
 import { formatDatasetList, textResult } from '../../utils/formatters.js';
+import { buildDatasetPattern } from '../../utils/glob.js';
 import { listDatasets } from './shared.js';
 
 const inputShape = {
@@ -21,7 +22,7 @@ export const registerListDatasetsTool: ToolRegistrar = (server, ctx) => {
     'List catalog datasets matching a high-level qualifier (and optional pattern).',
     inputShape,
     safeHandler(async ({ hlq, pattern }) => {
-      const search = pattern ? `${hlq}.${pattern}` : `${hlq}.*`;
+      const search = buildDatasetPattern(hlq, pattern);
       const datasets = await listDatasets(ctx, search);
       ctx.logger.debug({ search, count: datasets.length }, 'list_datasets');
       return textResult(formatDatasetList(datasets));

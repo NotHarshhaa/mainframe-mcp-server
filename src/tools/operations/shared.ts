@@ -14,6 +14,7 @@ import { isFailedJob, normalizeJob } from '../jobs/shared.js';
 export interface FailedJobSummary {
   job: Job;
   abendCode: string | null;
+  endedAt: number | null;
 }
 
 /** Parse the `exec-ended` timestamp from a raw job, if present. */
@@ -25,10 +26,10 @@ function execEndedMillis(raw: IJob): number | null {
 }
 
 /**
- * Find failed jobs across the output queue within the last `hours`.
+ * Find failed jobs in the output queue within the last `hours`.
  *
  * Time filtering is best-effort: jobs without an `exec-ended` timestamp are
- * always included (JES does not always surface completion times).
+ * included only when they are in OUTPUT status (completed/failed).
  */
 export async function findFailedJobs(
   ctx: ToolContext,
@@ -41,14 +42,19 @@ export async function findFailedJobs(
   const summaries: FailedJobSummary[] = [];
   for (const raw of raws) {
     const job = normalizeJob(raw);
-    if (!isFailedJob(job)) continue;
+    if (job.status !== 'OUTPUT' || !isFailedJob(job)) continue;
 
     const ended = execEndedMillis(raw);
     if (ended != null && ended < cutoff) continue;
 
-    summaries.push({ job, abendCode: extractAbendCode(job.returnCode ?? '') });
+    summaries.push({
+      job,
+      abendCode: extractAbendCode(job.returnCode ?? ''),
+      endedAt: ended,
+    });
   }
-  return summaries;
+
+  return summaries.sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0));
 }
 
 /** Aggregate failed jobs by abend code. */

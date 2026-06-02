@@ -5,6 +5,7 @@ import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { safeHandler } from '../../utils/errors.js';
 import { formatMemberList, textResult } from '../../utils/formatters.js';
+import { globToRegExp } from '../../utils/glob.js';
 import { listMembers } from './shared.js';
 
 const inputShape = {
@@ -15,16 +16,6 @@ const inputShape = {
     .describe('Member name pattern with "*"/"?" wildcards, e.g. "IKJ*". Omit to list all.'),
 };
 
-/** Convert a simple member glob (* and ?) into an anchored RegExp. */
-function globToRegExp(glob: string): RegExp {
-  const escaped = glob
-    .toUpperCase()
-    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*/g, '.*')
-    .replace(/\?/g, '.');
-  return new RegExp(`^${escaped}$`);
-}
-
 export const registerSearchMembersTool: ToolRegistrar = (server, ctx) => {
   server.tool(
     'search_members',
@@ -33,10 +24,10 @@ export const registerSearchMembersTool: ToolRegistrar = (server, ctx) => {
     safeHandler(async ({ dsn, pattern }) => {
       const members = await listMembers(ctx, dsn);
       const filtered = pattern
-        ? members.filter((member) => globToRegExp(pattern).test(member.name.toUpperCase()))
+        ? members.filter((member) => globToRegExp(pattern, { caseInsensitive: true }).test(member.name))
         : members;
       ctx.logger.debug({ dsn, pattern, count: filtered.length }, 'search_members');
-      return textResult(formatMemberList(dsn, filtered));
+      return textResult(formatMemberList(dsn, filtered, pattern));
     }),
   );
 };

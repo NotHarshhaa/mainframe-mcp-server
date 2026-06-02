@@ -1,8 +1,10 @@
 import {
   formatAbendCatalog,
   formatAbendInfo,
+  formatContentHeader,
   formatFailureAnalysis,
   formatJobList,
+  formatMemberList,
   formatStructuredResponse,
   renderTable,
   truncateLines,
@@ -39,6 +41,13 @@ describe('formatters', () => {
       expect(res.truncated).toBe(true);
       expect(res.totalLines).toBe(10);
       expect(res.text).toContain('truncated 6 of 10 lines');
+    });
+
+    it('normalizes Windows line endings before truncating', () => {
+      const input = 'a\r\nb\r\nc';
+      const res = truncateLines(input, 2);
+      expect(res.totalLines).toBe(3);
+      expect(res.text).not.toContain('\r');
     });
   });
 
@@ -131,6 +140,19 @@ describe('formatters', () => {
       ]);
       expect(out).toContain('S0C7');
       expect(out).toContain('Data Exception');
+    });
+  });
+
+  describe('formatMemberList', () => {
+    it('reports when a pattern matches nothing', () => {
+      expect(formatMemberList('SYS1.PROCLIB', [], 'IKJ*')).toMatch(/matched pattern/);
+    });
+  });
+
+  describe('formatContentHeader', () => {
+    it('includes a truncation notice when content was capped', () => {
+      const header = formatContentHeader('SYS1.PROCLIB(MEM)', true, 5000, 2000);
+      expect(header).toContain('[Showing first 2000 of 5000 lines]');
     });
   });
 });

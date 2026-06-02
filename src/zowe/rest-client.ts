@@ -22,17 +22,12 @@ export function resolveEndpoint(config: AppConfig, endpoint: EnterpriseEndpoint)
         port: enterprise.cmciPort,
         basePath: enterprise.cmciBasePath,
       };
-    case 'db2': {
-      const host = enterprise.db2Host ?? zosmf.host;
-      if (!enterprise.db2Location && endpoint === 'db2') {
-        // location checked at call site for clearer errors
-      }
+    case 'db2':
       return {
-        host,
+        host: enterprise.db2Host ?? zosmf.host,
         port: enterprise.db2Port,
         basePath: enterprise.db2BasePath,
       };
-    }
     default:
       return {
         host: zosmf.host,
@@ -104,7 +99,7 @@ export async function postJson<T extends object>(
   body: unknown,
 ): Promise<T> {
   try {
-    return await RestClient.postExpectJSON<T>(session, resource, [body]);
+    return await RestClient.postExpectJSON<T>(session, resource, [], body);
   } catch (err) {
     throw mapRestError(err, resource);
   }

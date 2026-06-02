@@ -1,5 +1,5 @@
 import type { IJob, IJobFile } from '@zowe/zos-jobs-for-zowe-sdk';
-import { isFailedJob, normalizeJob, normalizeSpoolFile } from '../../../src/tools/jobs/shared.js';
+import { findFailedStep, isFailedJob, normalizeJob, normalizeSpoolFile } from '../../../src/tools/jobs/shared.js';
 
 function makeJob(overrides: Partial<IJob>): IJob {
   return {
@@ -70,6 +70,18 @@ describe('jobs/shared', () => {
       expect(isFailedJob(normalizeJob(makeJob({ retcode: undefined, status: 'ACTIVE' })))).toBe(
         false,
       );
+    });
+  });
+
+  describe('findFailedStep', () => {
+    it('extracts a step from an IEF450I abend line', () => {
+      const text = 'IEF450I PAYJOB01 STEP030 PROC1 - ABEND S806 U0000';
+      expect(findFailedStep(text)).toBe('STEP030');
+    });
+
+    it('extracts a step from an IEF142I condition code line', () => {
+      const text = 'IEF142I PAYJOB01 STEP010 - STEP010 WAS EXECUTED - COND CODE 0012';
+      expect(findFailedStep(text)).toBe('STEP010');
     });
   });
 });

@@ -21,11 +21,12 @@ export const registerSubmitJclTool: ToolRegistrar = (server, ctx) => {
     'Submit inline JCL to JES for execution and return the new job identifier.',
     inputShape,
     safeHandler(async ({ jcl }) => {
-      if (!/^\s*\/\//.test(jcl)) {
+      const normalized = jcl.replace(/\r\n/g, '\n').trim();
+      if (!/^\/\//.test(normalized)) {
         throw new ValidationError('JCL must begin with a "//" JOB statement.');
       }
 
-      const submitted = await SubmitJobs.submitJcl(ctx.session, jcl);
+      const submitted = await SubmitJobs.submitJcl(ctx.session, normalized);
       const job = normalizeJob(submitted);
       ctx.logger.info({ jobId: job.jobId, jobName: job.jobName }, 'submit_jcl');
 

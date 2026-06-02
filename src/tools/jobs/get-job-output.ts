@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { NotFoundError, safeHandler } from '../../utils/errors.js';
-import { formatSpoolFiles, textResult, truncateLines } from '../../utils/formatters.js';
+import { formatContentHeader, formatSpoolFiles, textResult, truncateLines } from '../../utils/formatters.js';
 import { fetchJob, fetchSpoolContent, fetchSpoolFiles } from './shared.js';
 
 const inputShape = {
@@ -31,7 +31,9 @@ export const registerGetJobOutputTool: ToolRegistrar = (server, ctx) => {
         return textResult(formatSpoolFiles(job.jobName, job.jobId, files));
       }
 
-      const match = files.find((file) => file.ddName.toUpperCase() === ddName.toUpperCase());
+      const match = files
+        .filter((file) => file.ddName.toUpperCase() === ddName.toUpperCase())
+        .sort((a, b) => b.id - a.id)[0];
       if (!match) {
         const available = files.map((f) => f.ddName).join(', ') || '(none)';
         throw new NotFoundError(`DD "${ddName}" not found for ${job.jobName} (${job.jobId}).`, {
@@ -43,7 +45,12 @@ export const registerGetJobOutputTool: ToolRegistrar = (server, ctx) => {
       const { text, truncated, totalLines } = truncateLines(raw, ctx.config.limits.maxJobOutputLines);
       ctx.logger.debug({ jobId, ddName, totalLines, truncated }, 'get_job_output');
 
-      const header = `Output of ${job.jobName} (${job.jobId}) DD=${match.ddName}\n${'─'.repeat(48)}\n`;
+      const header = formatContentHeader(
+        `Output of ${job.jobName} (${job.jobId}) DD=${match.ddName}`,
+        truncated,
+        totalLines,
+        ctx.config.limits.maxJobOutputLines,
+      );
       return textResult(header + text);
     }),
   );

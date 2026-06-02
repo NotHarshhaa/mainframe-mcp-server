@@ -25,6 +25,7 @@ export const registerSystemHealthTool: ToolRegistrar = (server, ctx) => {
       const failedSummaries = failed.map((job) => ({
         job,
         abendCode: extractAbendCode(job.returnCode ?? ''),
+        endedAt: null,
       }));
       const topAbends = aggregateAbends(failedSummaries).slice(0, 5);
 

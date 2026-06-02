@@ -10,6 +10,7 @@ import type { Job, JobFailureAnalysis, JobStatus, SpoolFile } from '../../types/
 import type { ToolContext } from '../../types/tools.js';
 import { NotFoundError, normalizeError } from '../../utils/errors.js';
 import { extractAbendCode, lookupAbend } from '../../utils/abend-codes.js';
+import { truncateLines } from '../../utils/formatters.js';
 
 /** DD names most likely to contain the failure narrative, in priority order. */
 const DIAGNOSTIC_DDS = ['JESYSMSG', 'JESMSGLG', 'SYSOUT', 'SYSPRINT'];
@@ -142,6 +143,34 @@ export async function fetchDiagnosticSpool(
   return out;
 }
 
+/** Max lines of spool text to scan when inferring a failing step quickly. */
+const QUICK_STEP_SCAN_LINES = 250;
+
+/**
+ * Fetch a single diagnostic spool DD and infer the failing step without a full
+ * analysis pass. Used by list-style tools to avoid downloading every DD.
+ */
+export async function fetchQuickFailureStep(
+  ctx: ToolContext,
+  jobName: string,
+  jobId: string,
+): Promise<string | null> {
+  const files = await fetchSpoolFiles(ctx, jobName, jobId);
+  const diagnostic = files
+    .filter((file) => DIAGNOSTIC_DDS.includes(file.ddName.toUpperCase()))
+    .sort(
+      (a, b) =>
+        DIAGNOSTIC_DDS.indexOf(a.ddName.toUpperCase()) -
+        DIAGNOSTIC_DDS.indexOf(b.ddName.toUpperCase()),
+    )[0];
+
+  if (!diagnostic) return null;
+
+  const raw = await fetchSpoolContent(ctx, jobName, jobId, diagnostic.id);
+  const { text } = truncateLines(raw, QUICK_STEP_SCAN_LINES);
+  return findFailedStep(text);
+}
+
 /**
  * Analyze a (presumed failed) job: locate the abend code, failing step/program,
  * and a remediation hint from the diagnostic spool output.
@@ -189,7 +218,7 @@ export async function analyzeJobFailure(
 }
 
 /** Heuristically find the failing step name from spool messages. */
-function findFailedStep(text: string): string | null {
+export function findFailedStep(text: string): string | null {
   // IEF450I jobname stepname procstep - ABEND ...
   const ief450 = text.match(/IEF450I\s+\S+\s+(\S+)(?:\s+(\S+))?\s+-\s+ABEND/i);
   if (ief450) return ief450[1];

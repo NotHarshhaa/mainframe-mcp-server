@@ -21,11 +21,11 @@ describe('intelligence/shared', () => {
 
   beforeEach(() => {
     jest.mocked(findFailedJobs).mockResolvedValue([
-      { job: job('PAYJOB01', 'J1', 'ABEND S806'), abendCode: 'S806' },
-      { job: job('PAYJOB01', 'J2', 'ABEND S806'), abendCode: 'S806' },
-      { job: job('PAYJOB01', 'J3', 'ABEND S806'), abendCode: 'S806' },
-      { job: job('PAYJOB01', 'J4', 'ABEND S806'), abendCode: 'S806' },
-      { job: job('RPTJOB', 'J5', 'ABEND S0C7'), abendCode: 'S0C7' },
+      { job: job('PAYJOB01', 'J1', 'ABEND S806'), abendCode: 'S806', endedAt: null },
+      { job: job('PAYJOB01', 'J2', 'ABEND S806'), abendCode: 'S806', endedAt: null },
+      { job: job('PAYJOB01', 'J3', 'ABEND S806'), abendCode: 'S806', endedAt: null },
+      { job: job('PAYJOB01', 'J4', 'ABEND S806'), abendCode: 'S806', endedAt: null },
+      { job: job('RPTJOB', 'J5', 'ABEND S0C7'), abendCode: 'S0C7', endedAt: null },
     ]);
   });
 

@@ -4,12 +4,12 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { safeHandler } from '../../utils/errors.js';
-import { renderTable, textResult } from '../../utils/formatters.js';
-import { analyzeJobFailure } from '../jobs/shared.js';
+import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
+import { fetchQuickFailureStep } from '../jobs/shared.js';
 import { findFailedJobs } from './shared.js';
 
-/** Cap how many jobs we'll deep-analyze (each one downloads spool). */
-const MAX_DEEP_ANALYZE = 15;
+/** Cap how many jobs we'll scan spool for (one DD each). */
+const MAX_STEP_LOOKUP = 15;
 
 const inputShape = {
   hours: z
@@ -38,10 +38,9 @@ export const registerFailedJobsTool: ToolRegistrar = (server, ctx) => {
       for (let i = 0; i < failures.length; i += 1) {
         const { job, abendCode } = failures[i];
         let step = '—';
-        if (i < MAX_DEEP_ANALYZE) {
+        if (i < MAX_STEP_LOOKUP) {
           try {
-            const analysis = await analyzeJobFailure(ctx, job.jobId);
-            step = analysis.failedStep ?? '—';
+            step = (await fetchQuickFailureStep(ctx, job.jobName, job.jobId)) ?? '—';
           } catch {
             step = '—';
           }
@@ -51,13 +50,19 @@ export const registerFailedJobsTool: ToolRegistrar = (server, ctx) => {
 
       ctx.logger.debug({ window, count: failures.length }, 'find_failed_jobs');
 
-      const header = `Failed Jobs — Last ${window} Hours (${failures.length} found)\n\n`;
-      const table = renderTable(['Job Name', 'Job ID', 'Abend Code', 'Failed Step'], rows);
       const note =
-        failures.length > MAX_DEEP_ANALYZE
-          ? `\n\n(Step detail shown for the first ${MAX_DEEP_ANALYZE} jobs.)`
+        failures.length > MAX_STEP_LOOKUP
+          ? `\n\n(Step detail shown for the first ${MAX_STEP_LOOKUP} jobs.)`
           : '';
-      return textResult(header + table + note);
+
+      return textResult(
+        formatStructuredResponse(`Failed Jobs — Last ${window} Hours`, [
+          {
+            heading: `${failures.length} failed job(s)`,
+            body: renderTable(['Job Name', 'Job ID', 'Abend Code', 'Failed Step'], rows) + note,
+          },
+        ]),
+      );
     }),
   );
 };

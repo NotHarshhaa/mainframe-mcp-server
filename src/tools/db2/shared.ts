@@ -50,16 +50,24 @@ export async function listDb2Subsystems(ctx: ToolContext): Promise<string[]> {
   return [ctx.config.enterprise.db2Location!];
 }
 
+/** Sanitize a value for use in a read-only SQL literal (Db2 catalog search). */
+function sanitizeSqlLiteral(value: string): string {
+  return value
+    .replace(/'/g, "''")
+    .replace(/[;\r\n]/g, '')
+    .slice(0, 64);
+}
+
 /** Search the Db2 catalog for tables, views, or aliases. */
 export async function searchDb2Catalog(
   ctx: ToolContext,
   pattern: string,
   schema?: string,
 ): Promise<Db2CatalogEntry[]> {
+  const likePattern = sanitizeSqlLiteral(pattern).replace(/\*/g, '%').replace(/\?/g, '_');
   const schemaFilter = schema
-    ? `AND CREATOR = '${schema.replace(/'/g, "''")}'`
+    ? `AND CREATOR = '${sanitizeSqlLiteral(schema)}'`
     : '';
-  const likePattern = pattern.replace(/'/g, "''").replace(/\*/g, '%').replace(/\?/g, '_');
   const sql = `
     SELECT CREATOR, NAME, TYPE
     FROM SYSIBM.SYSTABLES

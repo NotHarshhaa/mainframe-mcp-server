@@ -76,9 +76,9 @@ export function truncateLines(
   text: string,
   maxLines: number,
 ): { text: string; truncated: boolean; totalLines: number } {
-  const lines = text.split('\n');
+  const lines = text.split(/\r?\n/);
   if (lines.length <= maxLines) {
-    return { text, truncated: false, totalLines: lines.length };
+    return { text: lines.join('\n'), truncated: false, totalLines: lines.length };
   }
   const kept = lines.slice(0, maxLines).join('\n');
   return {
@@ -86,6 +86,18 @@ export function truncateLines(
     truncated: true,
     totalLines: lines.length,
   };
+}
+
+/** Build a content header with an optional truncation notice for read tools. */
+export function formatContentHeader(
+  label: string,
+  truncated: boolean,
+  totalLines: number,
+  maxLines: number,
+): string {
+  const rule = '─'.repeat(Math.min(label.length, 48));
+  const notice = truncated ? `\n[Showing first ${maxLines} of ${totalLines} lines]` : '';
+  return `${label}\n${rule}${notice}\n`;
 }
 
 /** Format a list of jobs as a table. */
@@ -145,8 +157,12 @@ export function formatDatasetList(datasets: Dataset[]): string {
 }
 
 /** Format a PDS member list. */
-export function formatMemberList(dsn: string, members: Member[]): string {
-  if (members.length === 0) return `No members found in ${dsn}.`;
+export function formatMemberList(dsn: string, members: Member[], pattern?: string): string {
+  if (members.length === 0) {
+    return pattern
+      ? `No members in ${dsn} matched pattern "${pattern}".`
+      : `No members found in ${dsn}.`;
+  }
   const rows = members.map((member) => [member.name, member.modified ?? '—']);
   const header = `Members of ${dsn} (${members.length} found)\n\n`;
   return header + renderTable(['Member', 'Modified'], rows);

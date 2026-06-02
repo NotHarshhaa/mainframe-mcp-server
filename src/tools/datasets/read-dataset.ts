@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { safeHandler } from '../../utils/errors.js';
-import { textResult, truncateLines } from '../../utils/formatters.js';
+import { textResult, formatContentHeader, truncateLines } from '../../utils/formatters.js';
 import { readDataset } from './shared.js';
 
 const inputShape = {
@@ -29,7 +29,7 @@ export const registerReadDatasetTool: ToolRegistrar = (server, ctx) => {
       ctx.logger.debug({ dsn, member, totalLines, truncated }, 'read_dataset');
 
       const label = member ? `${dsn}(${member})` : dsn;
-      const header = `${label}\n${'─'.repeat(Math.min(label.length, 48))}\n`;
+      const header = formatContentHeader(label, truncated, totalLines, ctx.config.limits.maxDatasetReadLines);
       return textResult(header + text);
     }),
   );

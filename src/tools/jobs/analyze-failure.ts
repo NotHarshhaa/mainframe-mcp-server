@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { safeHandler } from '../../utils/errors.js';
-import { formatFailureAnalysis, textResult } from '../../utils/formatters.js';
+import { formatFailureAnalysis, formatStructuredResponse, textResult } from '../../utils/formatters.js';
 import { analyzeJobFailure } from './shared.js';
 
 const inputShape = {
@@ -19,7 +19,11 @@ export const registerAnalyzeFailureTool: ToolRegistrar = (server, ctx) => {
     safeHandler(async ({ jobId }) => {
       const analysis = await analyzeJobFailure(ctx, jobId);
       ctx.logger.debug({ jobId, abendCode: analysis.abendCode }, 'analyze_job_failure');
-      return textResult(formatFailureAnalysis(analysis));
+      return textResult(
+        formatStructuredResponse(`Failure Analysis — ${analysis.job.jobName}`, [
+          { heading: 'Analysis', body: formatFailureAnalysis(analysis) },
+        ]),
+      );
     }),
   );
 };

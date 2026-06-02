@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { safeHandler } from '../../utils/errors.js';
-import { textResult, truncateLines } from '../../utils/formatters.js';
+import { textResult, formatContentHeader, truncateLines } from '../../utils/formatters.js';
 import { readUssFile } from './shared.js';
 
 const inputShape = {
@@ -23,7 +23,7 @@ export const registerReadFileTool: ToolRegistrar = (server, ctx) => {
         ctx.config.limits.maxDatasetReadLines,
       );
       ctx.logger.debug({ path, totalLines, truncated }, 'read_uss_file');
-      const header = `${path}\n${'─'.repeat(Math.min(path.length, 48))}\n`;
+      const header = formatContentHeader(path, truncated, totalLines, ctx.config.limits.maxDatasetReadLines);
       return textResult(header + text);
     }),
   );
