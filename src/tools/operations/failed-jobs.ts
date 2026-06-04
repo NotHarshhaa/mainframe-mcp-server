@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { fetchQuickFailureStep } from '../jobs/shared.js';
 import { findFailedJobs } from './shared.js';
@@ -26,7 +26,7 @@ export const registerFailedJobsTool: ToolRegistrar = (server, ctx) => {
     'find_failed_jobs',
     'Find all failed jobs within a recent time window and summarize their abend/step.',
     inputShape,
-    safeHandler(async ({ hours, owner }) => {
+    securedHandler(ctx, 'find_failed_jobs', async ({ hours, owner }) => {
       const window = hours ?? 24;
       const failures = await findFailedJobs(ctx, window, owner ?? '*');
 

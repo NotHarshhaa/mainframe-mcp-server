@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { formatJobList, textResult } from '../../utils/formatters.js';
 import { listJobs } from './shared.js';
 
@@ -27,11 +27,17 @@ export const registerListJobsTool: ToolRegistrar = (server, ctx) => {
     'list_jobs',
     'List z/OS batch jobs filtered by owner, name prefix, or status.',
     inputShape,
-    safeHandler(async ({ owner, prefix, status }) => {
+    securedHandler(ctx, 'list_jobs', async ({ owner, prefix, status }) => {
       const jobs = await listJobs(ctx, owner ?? '*', prefix ?? '*');
       const filtered = status ? jobs.filter((job) => job.status === status) : jobs;
-      ctx.logger.debug({ count: filtered.length, owner, prefix, status }, 'list_jobs');
-      return textResult(formatJobList(filtered));
+      const limit = ctx.config.limits.maxJobListResults;
+      const capped = filtered.slice(0, limit);
+
+      ctx.logger.debug(
+        { count: capped.length, total: filtered.length, owner, prefix, status },
+        'list_jobs',
+      );
+      return textResult(formatJobList(capped, filtered.length));
     }),
   );
 };

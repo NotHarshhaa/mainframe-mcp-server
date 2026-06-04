@@ -27,6 +27,9 @@ export const registerSubmitJclTool: ToolRegistrar = (server, ctx) => {
       if (!/^\/\//.test(normalized)) {
         throw new ValidationError('JCL must begin with a "//" JOB statement.');
       }
+      if (normalized.includes('\0')) {
+        throw new ValidationError('JCL must not contain null characters.');
+      }
 
       assertJclSizeAllowed(ctx.config, normalized);
 

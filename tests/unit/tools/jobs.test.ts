@@ -1,5 +1,5 @@
 import type { IJob, IJobFile } from '@zowe/zos-jobs-for-zowe-sdk';
-import { findFailedStep, isFailedJob, normalizeJob, normalizeSpoolFile } from '../../../src/tools/jobs/shared.js';
+import { findFailedStep, isFailedJob, latestSpoolFilesByDd, normalizeJob, normalizeSpoolFile } from '../../../src/tools/jobs/shared.js';
 
 function makeJob(overrides: Partial<IJob>): IJob {
   return {
@@ -45,6 +45,18 @@ describe('jobs/shared', () => {
       expect(file.ddName).toBe('JESMSGLG');
       expect(file.stepName).toBe('STEP030');
       expect(file.recordCount).toBe(42);
+    });
+  });
+
+  describe('latestSpoolFilesByDd', () => {
+    it('keeps the highest spool id when DD names duplicate', () => {
+      const deduped = latestSpoolFilesByDd([
+        { id: 1, ddName: 'SYSOUT' },
+        { id: 3, ddName: 'SYSOUT' },
+        { id: 2, ddName: 'JESYSMSG' },
+      ]);
+      expect(deduped).toHaveLength(2);
+      expect(deduped.find((file) => file.ddName === 'SYSOUT')?.id).toBe(3);
     });
   });
 

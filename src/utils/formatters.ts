@@ -101,7 +101,7 @@ export function formatContentHeader(
 }
 
 /** Format a list of jobs as a table. */
-export function formatJobList(jobs: Job[]): string {
+export function formatJobList(jobs: Job[], totalCount?: number): string {
   if (jobs.length === 0) return 'No jobs matched the given filters.';
   const rows = jobs.map((job) => [
     job.jobName,
@@ -110,8 +110,15 @@ export function formatJobList(jobs: Job[]): string {
     job.status,
     job.returnCode ?? '—',
   ]);
-  const header = `Jobs (${jobs.length} found)\n\n`;
-  return header + renderTable(['Job Name', 'Job ID', 'Owner', 'Status', 'Return Code'], rows);
+  const shown = jobs.length;
+  const total = totalCount ?? shown;
+  let header = `Jobs (${shown} shown`;
+  header += total > shown ? ` of ${total} matched)\n\n` : ')\n\n';
+  let body = header + renderTable(['Job Name', 'Job ID', 'Owner', 'Status', 'Return Code'], rows);
+  if (total > shown) {
+    body += `\n\n[Showing first ${shown} of ${total} jobs. Narrow owner, prefix, or status filters.]`;
+  }
+  return body;
 }
 
 /** Format a single job's status as an aligned key/value block. */

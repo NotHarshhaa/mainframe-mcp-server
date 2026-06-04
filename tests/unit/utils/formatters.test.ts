@@ -69,7 +69,22 @@ describe('formatters', () => {
       const out = formatJobList(jobs);
       expect(out).toContain('PAYJOB01');
       expect(out).toContain('JOB01234');
-      expect(out).toContain('(1 found)');
+      expect(out).toContain('(1 shown)');
+    });
+
+    it('notes when results are capped', () => {
+      const jobs: Job[] = [
+        {
+          jobName: 'PAYJOB01',
+          jobId: 'JOB01234',
+          owner: 'PAYUSR',
+          status: 'OUTPUT',
+          returnCode: 'CC 0000',
+        },
+      ];
+      const out = formatJobList(jobs, 50);
+      expect(out).toContain('of 50 matched');
+      expect(out).toContain('Showing first 1 of 50');
     });
   });
 

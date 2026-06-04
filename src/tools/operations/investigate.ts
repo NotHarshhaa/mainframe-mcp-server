@@ -7,7 +7,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import {
   formatFailureAnalysis,
   formatJobStatus,
@@ -16,7 +16,7 @@ import {
   textResult,
   truncateLines,
 } from '../../utils/formatters.js';
-import { analyzeJobFailure, fetchDiagnosticSpool, fetchJob, fetchSpoolFiles } from '../jobs/shared.js';
+import { analyzeJobFailure, fetchDiagnosticSpool, fetchSpoolFiles } from '../jobs/shared.js';
 
 const inputShape = {
   jobId: z.string().min(1).describe('JES job id to investigate, e.g. "JOB01234".'),
@@ -27,12 +27,10 @@ export const registerInvestigateTool: ToolRegistrar = (server, ctx) => {
     'investigate_incident',
     'Assemble a full incident bundle for a job: status, root-cause analysis, spool inventory, and diagnostic excerpt.',
     inputShape,
-    safeHandler(async ({ jobId }) => {
-      const job = await fetchJob(ctx, jobId);
-      const [spoolFiles, analysis] = await Promise.all([
-        fetchSpoolFiles(ctx, job.jobName, job.jobId),
-        analyzeJobFailure(ctx, jobId),
-      ]);
+    securedHandler(ctx, 'investigate_incident', async ({ jobId }) => {
+      const analysis = await analyzeJobFailure(ctx, jobId);
+      const job = analysis.job;
+      const spoolFiles = await fetchSpoolFiles(ctx, job.jobName, job.jobId);
 
       const sections = [
         { heading: 'Status', body: formatJobStatus(job) },

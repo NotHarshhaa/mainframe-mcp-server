@@ -24,6 +24,8 @@ function config(overrides: Partial<AppConfig['security']> = {}): AppConfig {
       maxDatasetReadLines: 100,
       maxJesSpoolFiles: 5,
       maxAuditLines: 100,
+      maxJobListResults: 500,
+      maxFailedJobResults: 100,
     },
     enterprise: {
       cmciPort: 1490,

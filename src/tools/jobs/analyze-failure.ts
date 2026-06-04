@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { formatFailureAnalysis, formatStructuredResponse, textResult } from '../../utils/formatters.js';
 import { analyzeJobFailure } from './shared.js';
 
@@ -16,7 +16,7 @@ export const registerAnalyzeFailureTool: ToolRegistrar = (server, ctx) => {
     'analyze_job_failure',
     'Analyze a failed job: identify the abend code, failing step/program, and a suggested fix.',
     inputShape,
-    safeHandler(async ({ jobId }) => {
+    securedHandler(ctx, 'analyze_job_failure', async ({ jobId }) => {
       const analysis = await analyzeJobFailure(ctx, jobId);
       ctx.logger.debug({ jobId, abendCode: analysis.abendCode }, 'analyze_job_failure');
       return textResult(

@@ -31,7 +31,7 @@ export const configSchema = z
     }),
     mcp: z.object({
       name: z.string().default('mainframe-mcp-server'),
-      version: z.string().default('2.1.0'),
+      version: z.string().default('2.2.0'),
       transport: z.enum(['stdio', 'sse']).default('stdio'),
       ssePort: portSchema.default(3000),
     }),
@@ -43,6 +43,8 @@ export const configSchema = z
       maxDatasetReadLines: z.coerce.number().int().positive().default(2000),
       maxJesSpoolFiles: z.coerce.number().int().positive().default(20),
       maxAuditLines: z.coerce.number().int().positive().default(500),
+      maxJobListResults: z.coerce.number().int().positive().default(500),
+      maxFailedJobResults: z.coerce.number().int().positive().default(100),
     }),
     enterprise: z.object({
       cmciHost: z.string().optional(),

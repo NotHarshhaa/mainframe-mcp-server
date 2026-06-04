@@ -35,6 +35,8 @@ function readEnv(): unknown {
       maxDatasetReadLines: process.env.MAX_DATASET_READ_LINES,
       maxJesSpoolFiles: process.env.MAX_JES_SPOOL_FILES,
       maxAuditLines: process.env.MAX_AUDIT_LINES,
+      maxJobListResults: process.env.MAX_JOB_LIST_RESULTS,
+      maxFailedJobResults: process.env.MAX_FAILED_JOB_RESULTS,
     },
     enterprise: {
       cmciHost: process.env.CMCI_HOST,

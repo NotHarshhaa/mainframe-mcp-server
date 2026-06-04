@@ -6,8 +6,14 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { NotFoundError, safeHandler } from '../../utils/errors.js';
-import { formatContentHeader, formatSpoolFiles, textResult, truncateLines } from '../../utils/formatters.js';
+import { NotFoundError } from '../../utils/errors.js';
+import {
+  formatContentHeader,
+  formatSpoolFiles,
+  textResult,
+  truncateLines,
+} from '../../utils/formatters.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { fetchJob, fetchSpoolContent, fetchSpoolFiles } from './shared.js';
 
 const inputShape = {
@@ -23,7 +29,7 @@ export const registerGetJobOutputTool: ToolRegistrar = (server, ctx) => {
     'get_job_output',
     'Retrieve spool output for a job. Lists spool files, or returns one DD when ddName is given.',
     inputShape,
-    safeHandler(async ({ jobId, ddName }) => {
+    securedHandler(ctx, 'get_job_output', async ({ jobId, ddName }) => {
       const job = await fetchJob(ctx, jobId);
       const files = await fetchSpoolFiles(ctx, job.jobName, job.jobId);
 
@@ -31,9 +37,7 @@ export const registerGetJobOutputTool: ToolRegistrar = (server, ctx) => {
         return textResult(formatSpoolFiles(job.jobName, job.jobId, files));
       }
 
-      const match = files
-        .filter((file) => file.ddName.toUpperCase() === ddName.toUpperCase())
-        .sort((a, b) => b.id - a.id)[0];
+      const match = files.find((file) => file.ddName.toUpperCase() === ddName.toUpperCase());
       if (!match) {
         const available = files.map((f) => f.ddName).join(', ') || '(none)';
         throw new NotFoundError(`DD "${ddName}" not found for ${job.jobName} (${job.jobId}).`, {

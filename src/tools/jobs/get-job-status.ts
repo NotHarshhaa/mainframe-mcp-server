@@ -3,8 +3,9 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler, ValidationError } from '../../utils/errors.js';
+import { ValidationError } from '../../utils/errors.js';
 import { formatJobStatus, textResult } from '../../utils/formatters.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { fetchJob } from './shared.js';
 
 const inputShape = {
@@ -20,7 +21,7 @@ export const registerGetJobStatusTool: ToolRegistrar = (server, ctx) => {
     'get_job_status',
     'Get the current status and return code of a specific job by its JES job id.',
     inputShape,
-    safeHandler(async ({ jobId, jobName }) => {
+    securedHandler(ctx, 'get_job_status', async ({ jobId, jobName }) => {
       const job = await fetchJob(ctx, jobId);
 
       if (jobName && job.jobName.toUpperCase() !== jobName.toUpperCase()) {

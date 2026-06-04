@@ -70,7 +70,7 @@ Provide **either** basic auth **or** a token. Startup fails if neither is set.
 | Variable | Default | Description |
 |---|---|---|
 | `MCP_SERVER_NAME` | `mainframe-mcp-server` | Server name advertised to clients. |
-| `MCP_SERVER_VERSION` | `2.1.0` | Server version advertised to clients. |
+| `MCP_SERVER_VERSION` | `2.2.0` | Server version advertised to clients. |
 | `MCP_TRANSPORT` | `stdio` | `stdio` or `sse`. |
 | `MCP_SSE_PORT` | `3000` | Listen port when `MCP_TRANSPORT=sse`. |
 

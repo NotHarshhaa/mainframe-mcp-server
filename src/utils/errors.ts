@@ -72,6 +72,25 @@ export function normalizeError(err: unknown): MainframeMcpError {
     // Zowe ImperativeError exposes useful diagnostic fields; surface the message only.
     const maybeImperative = err as Error & { mDetails?: { msg?: string } };
     const message = maybeImperative.mDetails?.msg ?? err.message;
+    const lower = message.toLowerCase();
+
+    if (/401|403|unauthorized|authentication failed|invalid credentials|forbidden/i.test(message)) {
+      return new ConnectionError(
+        'z/OSMF authentication failed. Verify ZOSMF_USER/ZOSMF_PASSWORD or ZOSMF_TOKEN.',
+        { cause: message },
+      );
+    }
+    if (
+      /econnrefused|enotfound|etimedout|timeout|certificate|self signed|unable to verify/i.test(
+        lower,
+      )
+    ) {
+      return new ConnectionError(
+        'Unable to reach z/OSMF. Check ZOSMF_HOST, ZOSMF_PORT, VPN/network, and TLS settings.',
+        { cause: message },
+      );
+    }
+
     return new MainframeMcpError(message, 'UNEXPECTED_ERROR');
   }
 

@@ -28,8 +28,8 @@ function execEndedMillis(raw: IJob): number | null {
 /**
  * Find failed jobs in the output queue within the last `hours`.
  *
- * Time filtering is best-effort: jobs without an `exec-ended` timestamp are
- * included only when they are in OUTPUT status (completed/failed).
+ * Only jobs with an `exec-ended` timestamp inside the window are returned so
+ * stale OUTPUT entries without timing metadata are not misreported as recent.
  */
 export async function findFailedJobs(
   ctx: ToolContext,
@@ -38,6 +38,7 @@ export async function findFailedJobs(
 ): Promise<FailedJobSummary[]> {
   const raws = await GetJobs.getJobsByOwnerAndPrefix(ctx.session, owner, '*');
   const cutoff = Date.now() - hours * 60 * 60 * 1000;
+  const maxResults = ctx.config.limits.maxFailedJobResults;
 
   const summaries: FailedJobSummary[] = [];
   for (const raw of raws) {
@@ -45,7 +46,7 @@ export async function findFailedJobs(
     if (job.status !== 'OUTPUT' || !isFailedJob(job)) continue;
 
     const ended = execEndedMillis(raw);
-    if (ended != null && ended < cutoff) continue;
+    if (ended == null || ended < cutoff) continue;
 
     summaries.push({
       job,
@@ -54,7 +55,7 @@ export async function findFailedJobs(
     });
   }
 
-  return summaries.sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0));
+  return summaries.sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0)).slice(0, maxResults);
 }
 
 /** Aggregate failed jobs by abend code. */

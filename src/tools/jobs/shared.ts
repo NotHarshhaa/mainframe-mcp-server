@@ -99,14 +99,27 @@ export async function listJobs(
   return jobs.map(normalizeJob);
 }
 
-/** Retrieve the normalized spool inventory of a job. */
+/** When JES returns multiple spool files for the same DD, keep the newest (highest id). */
+export function latestSpoolFilesByDd(files: SpoolFile[]): SpoolFile[] {
+  const latest = new Map<string, SpoolFile>();
+  for (const file of files) {
+    const key = file.ddName.toUpperCase();
+    const current = latest.get(key);
+    if (!current || file.id > current.id) {
+      latest.set(key, file);
+    }
+  }
+  return [...latest.values()];
+}
+
+/** Retrieve the normalized spool inventory of a job (one entry per DD, newest id). */
 export async function fetchSpoolFiles(
   ctx: ToolContext,
   jobName: string,
   jobId: string,
 ): Promise<SpoolFile[]> {
   const files = await GetJobs.getSpoolFiles(ctx.session, jobName, jobId);
-  return files.map(normalizeSpoolFile);
+  return latestSpoolFilesByDd(files.map(normalizeSpoolFile));
 }
 
 /** Download the text content of a single spool file. */
