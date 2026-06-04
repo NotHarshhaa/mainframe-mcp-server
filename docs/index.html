@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Enterprise MCP server for IBM z/OS — jobs, datasets, USS, CICS, Db2, and operational diagnostics via Zowe SDK.">
+  <title>mainframe-mcp-server — MCP for IBM z/OS</title>
+  <script>
+    (function () {
+      var stored = localStorage.getItem('mainframe-mcp-theme');
+      var light = window.matchMedia('(prefers-color-scheme: light)').matches;
+      var theme = stored === 'light' || stored === 'dark' ? stored : (light ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-bar">
+      <a class="logo" href="#top">
+        <span class="logo-icon">z/OS</span>
+        <span class="logo-text">mainframe-mcp-server</span>
+      </a>
+      <button type="button" class="nav-menu-toggle" id="nav-menu-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Open menu">
+        <svg class="icon-menu" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+        <svg class="icon-close" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <nav class="nav-menu" id="nav-menu" aria-label="Main">
+        <ul class="nav-links">
+          <li><a href="#about">About</a></li>
+          <li><a href="#compare">Compare</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#tools">Tools</a></li>
+          <li><a href="#setup">Setup</a></li>
+          <li><a href="#enterprise">Enterprise</a></li>
+          <li><a href="#examples">Examples</a></li>
+        </ul>
+        <div class="nav-actions">
+          <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+            <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+          <a class="nav-cta" href="https://github.com/NotHarshhaa/mainframe-mcp-server">GitHub</a>
+        </div>
+      </nav>
+    </div>
+    <div class="nav-backdrop" id="nav-backdrop" hidden aria-hidden="true"></div>
+  </header>
+
+  <div id="top" class="hero">
+    <div class="hero-badges">
+      <span class="badge badge-green">MCP · stdio</span>
+      <span class="badge badge-blue">Zowe SDK</span>
+      <span class="badge badge-purple">TypeScript</span>
+      <span class="badge">MIT License</span>
+    </div>
+    <h1><span>AI agents</span> meet IBM z/OS</h1>
+    <p class="hero-lead">
+      An enterprise-grade Model Context Protocol server that exposes jobs, datasets, USS,
+      CICS, Db2, and operational diagnostics to Cursor, VS Code, and other MCP clients —
+      over z/OSMF REST via the IBM Zowe SDK.
+    </p>
+    <img class="hero-banner" src="assets/banner.png" alt="Bridge AI agents with IBM z/OS via MCP and Zowe SDK" width="900" height="auto">
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#setup">Get started</a>
+      <a class="btn btn-secondary" href="https://www.npmjs.com/package/@notharshhaa/mainframe-mcp-server">npm package</a>
+      <a class="btn btn-secondary" href="https://github.com/NotHarshhaa/mainframe-mcp-server">View source</a>
+    </div>
+  </div>
+
+  <main>
+    <section id="about">
+      <h2>What it does</h2>
+      <p class="section-intro">
+        <code>mainframe-mcp-server</code> turns z/OS capabilities into MCP tools an AI agent can call.
+        Instead of typing Zowe CLI commands, you ask in natural language — “why did PAYJOB01 fail?” —
+        and the agent invokes the right tool with validated inputs and structured output.
+      </p>
+      <div class="card-grid">
+        <div class="card">
+          <h3>MCP tool layer</h3>
+          <p>30+ tools for jobs, datasets, USS, operations, CICS, Db2, SMF, security, and intelligence — designed for LLM parsing.</p>
+        </div>
+        <div class="card">
+          <h3>Zowe connectivity</h3>
+          <p>Uses the same z/OSMF REST APIs as Zowe CLI and Zowe Explorer. Not a replacement for IDz or Z Open Editor — a bridge for AI assistants.</p>
+        </div>
+        <div class="card">
+          <h3>stdio by default</h3>
+          <p>IDE launches the server as a local process. JSON-RPC on stdin/stdout; logs on stderr. No MCP HTTP port unless you explicitly enable SSE.</p>
+        </div>
+        <div class="card">
+          <h3>IDE-driven config</h3>
+          <p>No <code>.env</code> file. Connection settings live in your MCP client config (<code>env</code> block). Installers prompt from <code>server.json</code> metadata.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="compare">
+      <h2>How it's different</h2>
+      <p class="section-intro">
+        This server fills a gap cloud-native MCP tools cannot: governed, structured access to the mainframe for AI workflows.
+      </p>
+      <p class="table-scroll-hint">Swipe horizontally to see all columns →</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th class="highlight-col">mainframe-mcp-server</th>
+              <th>Zowe CLI</th>
+              <th>IBM IDz / RSE</th>
+              <th>Cloud MCP (K8s, AWS…)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Interface</td>
+              <td class="highlight-col">MCP tools for AI agents</td>
+              <td>Terminal commands</td>
+              <td>Eclipse IDE / RSE</td>
+              <td>MCP for cloud stacks</td>
+            </tr>
+            <tr>
+              <td>z/OS coverage</td>
+              <td class="highlight-col">Jobs, datasets, USS, diagnostics, CICS, Db2</td>
+              <td>Full Zowe command set</td>
+              <td>Edit, debug, compile</td>
+              <td>None</td>
+            </tr>
+            <tr>
+              <td>Workflow</td>
+              <td class="highlight-col">“Why did this job fail?”</td>
+              <td>Manual scripting</td>
+              <td>Interactive development</td>
+              <td>N/A for mainframe</td>
+            </tr>
+            <tr>
+              <td>Output</td>
+              <td class="highlight-col">Structured sections &amp; tables for LLMs</td>
+              <td>Raw terminal text</td>
+              <td>IDE views</td>
+              <td>N/A</td>
+            </tr>
+            <tr>
+              <td>Requires</td>
+              <td class="highlight-col">z/OSMF REST + MCP client</td>
+              <td>z/OSMF / profiles</td>
+              <td>RSE / subsystem connection</td>
+              <td>Cloud API credentials</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout callout-info">
+        <strong>IDz login ≠ automatic MCP access.</strong> Your MCP host must reach
+        <strong>z/OSMF REST</strong> with credentials Zowe would accept — same as a Zowe CLI profile,
+        not necessarily the same connection path as Remote System Explorer.
+      </div>
+    </section>
+
+    <section id="features">
+      <h2>Features</h2>
+      <p class="section-intro">Built in phases for operational intelligence, enterprise platforms, and security controls.</p>
+      <div class="card-grid">
+        <div class="card">
+          <h3>Core (Phase 1)</h3>
+          <p>Job listing, status, spool output, JCL submit, dataset &amp; PDS read/search, failure analysis, safety limits on response size.</p>
+        </div>
+        <div class="card">
+          <h3>Operations (Phase 2)</h3>
+          <p>USS tools, <code>investigate_incident</code>, <code>system_health_summary</code>, abend lookup, structured AI-friendly responses, integration test suite.</p>
+        </div>
+        <div class="card">
+          <h3>Enterprise (Phase 3)</h3>
+          <p>CICS CMCI, Db2 REST catalog, SMF/RMF metrics, RACF audit queries, root-cause analysis, predictive batch failure scoring.</p>
+        </div>
+        <div class="card">
+          <h3>Security layer</h3>
+          <p>Read-only mode, tool allow/block lists, dataset &amp; USS boundaries, audit logging, JCL size caps — enforced at the MCP server in addition to RACF.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tools">
+      <h2>Tools reference</h2>
+      <p class="section-intro">
+        Full input/output details:
+        <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/docs/tools-reference.md">tools-reference.md</a>
+      </p>
+
+      <div class="tool-category">
+        <h3>Jobs</h3>
+        <div class="tool-list">
+          <div class="tool-item"><code>list_jobs</code><span>List jobs by owner, prefix, or status</span></div>
+          <div class="tool-item"><code>get_job_status</code><span>Status and return code for a job</span></div>
+          <div class="tool-item"><code>get_job_output</code><span>Spool inventory or DD content</span></div>
+          <div class="tool-item"><code>submit_jcl</code><span>Submit inline JCL (blocked in read-only mode)</span></div>
+          <div class="tool-item"><code>analyze_job_failure</code><span>Abend code, failing step, suggested fix</span></div>
+          <div class="tool-item"><code>get_job_jcl</code><span>Retrieve submitted JCL from job spool</span></div>
+        </div>
+      </div>
+
+      <div class="tool-category">
+        <h3>Datasets</h3>
+        <div class="tool-list">
+          <div class="tool-item"><code>list_datasets</code><span>List datasets matching an HLQ pattern</span></div>
+          <div class="tool-item"><code>read_dataset</code><span>Read a sequential dataset or PDS member</span></div>
+          <div class="tool-item"><code>search_dataset</code><span>Search datasets by pattern</span></div>
+          <div class="tool-item"><code>search_members</code><span>Search or list PDS members</span></div>
+          <div class="tool-item"><code>get_dataset_info</code><span>Catalog attributes without reading content</span></div>
+        </div>
+      </div>
+
+      <div class="tool-category">
+        <h3>USS</h3>
+        <div class="tool-list">
+          <div class="tool-item"><code>list_uss_directory</code><span>List a USS directory</span></div>
+          <div class="tool-item"><code>read_uss_file</code><span>Read a USS file</span></div>
+          <div class="tool-item"><code>search_uss_files</code><span>Search files under a USS path</span></div>
+        </div>
+      </div>
+
+      <div class="tool-category">
+        <h3>Operations</h3>
+        <div class="tool-list">
+          <div class="tool-item"><code>find_failed_jobs</code><span>Failed jobs in a time window</span></div>
+          <div class="tool-item"><code>summarize_abends</code><span>Abend breakdown across recent jobs</span></div>
+          <div class="tool-item"><code>system_health_summary</code><span>HEALTHY / DEGRADED / CRITICAL snapshot</span></div>
+          <div class="tool-item"><code>investigate_incident</code><span>Full incident bundle for a job</span></div>
+          <div class="tool-item"><code>lookup_abend_code</code><span>Reference for S0C7, S806, S222, S0C4, …</span></div>
+          <div class="tool-item"><code>verify_zosmf_connection</code><span>Test z/OSMF connectivity and auth — run this first</span></div>
+          <div class="tool-item"><code>compare_jobs</code><span>Side-by-side comparison of two jobs</span></div>
+          <div class="tool-item"><code>get_user_jobs_summary</code><span>Job counts by status for an owner</span></div>
+        </div>
+      </div>
+
+      <div class="tool-category">
+        <h3>CICS · Db2 · SMF · Security · Intelligence</h3>
+        <div class="tool-list">
+          <div class="tool-item"><code>list_cics_regions</code><span>List CICS regions via CMCI REST</span></div>
+          <div class="tool-item"><code>get_cics_region_status</code><span>Status and attributes of a CICS region</span></div>
+          <div class="tool-item"><code>list_cics_transactions</code><span>Transaction definitions in a region</span></div>
+          <div class="tool-item"><code>list_db2_subsystems</code><span>List Db2 locations via Db2 REST</span></div>
+          <div class="tool-item"><code>search_db2_catalog</code><span>Search catalog tables and views</span></div>
+          <div class="tool-item"><code>get_smf_metrics</code><span>SMF/RMF performance metrics snapshot</span></div>
+          <div class="tool-item"><code>query_racf_audit</code><span>Query RACF audit records from a log source</span></div>
+          <div class="tool-item"><code>security_posture_summary</code><span>Active security controls and recommendations</span></div>
+          <div class="tool-item"><code>analyze_root_cause</code><span>Deep root-cause analysis with action items</span></div>
+          <div class="tool-item"><code>predict_batch_failures</code><span>Predictive risk scoring for batch failures</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="setup">
+      <h2>Setup instructions</h2>
+      <p class="section-intro">
+        <strong>Requirements:</strong> Node.js 18+, reachable z/OSMF endpoint, valid z/OS credentials (user/password or token).
+      </p>
+
+      <h3 style="margin-top:2rem;font-size:1.15rem;">Option A — Install via npm (recommended)</h3>
+      <p class="section-intro">Published as <code>@notharshhaa/mainframe-mcp-server</code>. Listed on the MCP registry.</p>
+
+      <ol class="steps">
+        <li>
+          <strong>Add to your MCP client</strong>
+          <p>Cursor: <code>~/.cursor/mcp.json</code> · VS Code: MCP settings · Claude Desktop: <code>claude_desktop_config.json</code></p>
+        </li>
+        <li>
+          <strong>Paste the server block</strong>
+          <p>The IDE installer may prompt for values from <code>server.json</code>. Credentials go in the <code>env</code> block — not a <code>.env</code> file.</p>
+        </li>
+        <li>
+          <strong>Restart the IDE and test</strong>
+          <p>Ask the agent to run <code>verify_zosmf_connection</code>, then <code>list_jobs</code>.</p>
+        </li>
+      </ol>
+
+      <div class="code-label">MCP config (stdio · npm)</div>
+      <div class="code-block">
+<pre>{
+  "mcpServers": {
+    "mainframe": {
+      "command": "npx",
+      "args": ["-y", "@notharshhaa/mainframe-mcp-server"],
+      "env": {
+        "ZOSMF_HOST": "your-zosmf-host.internal",
+        "ZOSMF_PORT": "443",
+        "ZOSMF_USER": "your-username",
+        "ZOSMF_PASSWORD": "your-password",
+        "ZOSMF_REJECT_UNAUTHORIZED": "true",
+        "SECURITY_READ_ONLY": "false",
+        "SECURITY_AUDIT_LOGGING": "true"
+      }
+    }
+  }
+}</pre>
+      </div>
+
+      <h3 style="margin-top:2rem;font-size:1.15rem;">Option B — Run from source (VDI / internal Artifactory)</h3>
+      <p class="section-intro">For environments that block public npm — clone the repo, install dependencies from your internal registry, build locally.</p>
+
+      <div class="code-block">
+<pre>git clone https://github.com/NotHarshhaa/mainframe-mcp-server.git
+cd mainframe-mcp-server
+npm ci          # against your internal JFrog/npm mirror
+npm run build
+npm test          # unit tests, no mainframe required</pre>
+      </div>
+
+      <div class="code-label">MCP config (stdio · local build)</div>
+      <div class="code-block">
+<pre>{
+  "mcpServers": {
+    "mainframe": {
+      "command": "node",
+      "args": ["/absolute/path/to/mainframe-mcp-server/dist/index.js"],
+      "env": {
+        "ZOSMF_HOST": "your-zosmf-host.internal",
+        "ZOSMF_PORT": "443",
+        "ZOSMF_USER": "your-username",
+        "ZOSMF_PASSWORD": "your-password"
+      }
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="callout">
+        Do <strong>not</strong> set <code>MCP_TRANSPORT=sse</code> if your organization requires stdio-only MCP.
+        Omit <code>MCP_TRANSPORT</code> entirely — stdio is the default.
+      </div>
+
+      <h3 style="margin-top:2rem;font-size:1.15rem;">Required environment variables</h3>
+      <p class="table-scroll-hint">Swipe horizontally to see all columns →</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Variable</th><th>Required</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>ZOSMF_HOST</code></td><td>Yes</td><td>z/OSMF hostname or IP</td></tr>
+            <tr><td><code>ZOSMF_USER</code> / <code>ZOSMF_PASSWORD</code></td><td>Yes*</td><td>Basic auth credentials</td></tr>
+            <tr><td><code>ZOSMF_TOKEN</code></td><td>Yes*</td><td>Token auth (alternative to password)</td></tr>
+            <tr><td><code>ZOSMF_PORT</code></td><td>No</td><td>HTTPS port (default <code>443</code>)</td></tr>
+            <tr><td><code>ZOSMF_BASE_PATH</code></td><td>No</td><td>API gateway prefix if applicable</td></tr>
+            <tr><td><code>ZOSMF_REJECT_UNAUTHORIZED</code></td><td>No</td><td>TLS verification (default <code>true</code>)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="section-intro">* Provide either user/password <strong>or</strong> a token.</p>
+
+      <p>
+        Full reference:
+        <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/docs/configuration.md">configuration.md</a> ·
+        <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/docs/deployment.md">deployment.md</a> ·
+        <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/config/mcp-client.example.json">mcp-client.example.json</a>
+      </p>
+    </section>
+
+    <section id="enterprise">
+      <h2>Enterprise deployment</h2>
+      <p class="section-intro">Security controls enforced at the MCP server layer — in addition to RACF and z/OSMF permissions.</p>
+      <p class="table-scroll-hint">Swipe horizontally to see all columns →</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Control</th><th>Variable</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Read-only mode</td><td><code>SECURITY_READ_ONLY=true</code></td><td>Blocks <code>submit_jcl</code> and write tools</td></tr>
+            <tr><td>Tool allowlist</td><td><code>SECURITY_ALLOWED_TOOLS</code></td><td>Least-privilege tool access</td></tr>
+            <tr><td>Tool blocklist</td><td><code>SECURITY_BLOCKED_TOOLS</code></td><td>Explicitly deny tools</td></tr>
+            <tr><td>Dataset boundaries</td><td><code>SECURITY_ALLOWED_DATASET_PATTERNS</code></td><td>Restrict HLQ patterns</td></tr>
+            <tr><td>USS boundaries</td><td><code>SECURITY_ALLOWED_USS_PATHS</code></td><td>Restrict path prefixes</td></tr>
+            <tr><td>Audit logging</td><td><code>SECURITY_AUDIT_LOGGING=true</code></td><td>JSON audit line per tool call (stderr)</td></tr>
+            <tr><td>JCL size limit</td><td><code>SECURITY_MAX_JCL_BYTES</code></td><td>Cap inline JCL submit size</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout callout-warning">
+        <strong>Pilot checklist:</strong> dedicated service account · secrets in vault · VPN/network to z/OSMF ·
+        <code>verify_zosmf_connection</code> · <code>security_posture_summary</code> · start with
+        <code>SECURITY_READ_ONLY=true</code>.
+      </div>
+    </section>
+
+    <section id="examples">
+      <h2>Examples</h2>
+      <p class="section-intro">Natural-language prompts map to MCP tool calls with structured responses.</p>
+
+      <div class="example">
+        <div class="example-user">Why did PAYJOB01 fail?</div>
+        <pre class="example-result">Tool: analyze_job_failure({ jobId: "JOB01234" })
+
+Job:     PAYJOB01 (JOB01234)
+Status:  ABEND S806
+Step:    STEP030 - LOADPGM
+Reason:  Program load failure — module PAYRPTX not found
+Fix:     Verify PAYRPTX is compiled and linked into the correct load library.</pre>
+      </div>
+
+      <div class="example">
+        <div class="example-user">Show failed jobs from the last 24 hours</div>
+        <pre class="example-result">Tool: find_failed_jobs({ hours: 24 })</pre>
+      </div>
+
+      <div class="example">
+        <div class="example-user">What is abend S0C7?</div>
+        <pre class="example-result">Tool: lookup_abend_code({ code: "S0C7" })</pre>
+      </div>
+
+      <div class="example">
+        <div class="example-user">Which batch jobs are at risk of failing?</div>
+        <pre class="example-result">Tool: predict_batch_failures({ hours: 168 })</pre>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-links">
+      <a href="https://github.com/NotHarshhaa/mainframe-mcp-server">GitHub</a>
+      <a href="https://www.npmjs.com/package/@notharshhaa/mainframe-mcp-server">npm</a>
+      <a href="https://modelcontextprotocol.io/">MCP</a>
+      <a href="https://github.com/zowe/zowe-cli">Zowe</a>
+    </div>
+    <p>MIT License · <code>@notharshhaa/mainframe-mcp-server</code> · v2.1.0</p>
+  </footer>
+  <script src="assets/theme.js"></script>
+  <script src="assets/nav.js"></script>
+</body>
+</html>

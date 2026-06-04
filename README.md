@@ -291,6 +291,7 @@ Agent: predict_batch_failures({ hours: 168 })
 
 ## Documentation
 
+- **[Website (GitHub Pages)](https://notharshhaa.github.io/mainframe-mcp-server/)** — overview, tools, setup, enterprise guide
 - [Configuration](./docs/configuration.md) — all environment variables
 - [Tools reference](./docs/tools-reference.md) — inputs, outputs, and error codes
 - [Deployment](./docs/deployment.md) — stdio vs SSE transport
