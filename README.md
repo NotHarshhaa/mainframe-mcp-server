@@ -191,7 +191,11 @@ Phase 2 capabilities built into the server:
 npx -y @notharshhaa/mainframe-mcp-server
 ```
 
-Add to your MCP client config (Cursor, Claude Desktop, etc.):
+When you add this server in your IDE (Cursor, VS Code, Claude Desktop, etc.), the
+installer prompts for connection settings (driven by `server.json`). Those values
+are stored in your MCP config file — not in a `.env` file.
+
+Example MCP config (see also [config/mcp-client.example.json](./config/mcp-client.example.json)):
 
 ```json
 {
@@ -216,10 +220,11 @@ Add to your MCP client config (Cursor, Claude Desktop, etc.):
 git clone https://github.com/NotHarshhaa/mainframe-mcp-server.git
 cd mainframe-mcp-server
 npm install
-cp .env.example .env   # fill in your z/OSMF credentials
 npm run build
-npm start
 ```
+
+Point your IDE at `dist/index.js` and set `env` in MCP config (copy from
+`config/mcp-client.example.json`), or export variables in your shell before `npm start`.
 
 ### Environment variables
 

@@ -31,6 +31,13 @@
           "isSecret": false
         },
         {
+          "name": "ZOSMF_BASE_PATH",
+          "description": "Optional API gateway or mediation layer prefix for z/OSMF",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "ZOSMF_USER",
           "description": "z/OS user id (required with ZOSMF_PASSWORD unless ZOSMF_TOKEN is set)",
           "isRequired": false,
@@ -67,9 +74,184 @@
         },
         {
           "name": "LOG_LEVEL",
-          "description": "Log level: info, debug, warn, error, etc.",
+          "description": "Log level: fatal, error, warn, info, debug, trace, silent",
           "isRequired": false,
           "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MCP_TRANSPORT",
+          "description": "Transport: stdio (IDE) or sse (container/network)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MCP_SSE_PORT",
+          "description": "Listen port when MCP_TRANSPORT=sse",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MAX_JOB_OUTPUT_LINES",
+          "description": "Max lines returned from a single spool DD",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MAX_DATASET_READ_LINES",
+          "description": "Max lines returned from dataset or USS reads",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MAX_JES_SPOOL_FILES",
+          "description": "Max spool files fetched during diagnostics",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MAX_AUDIT_LINES",
+          "description": "Max RACF audit log lines per query",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "CMCI_CONTEXT",
+          "description": "CICSplex name or region APPLID (required for CICS tools)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "CMCI_HOST",
+          "description": "CMCI hostname (defaults to ZOSMF_HOST)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "CMCI_PORT",
+          "description": "CMCI HTTPS port (default 1490)",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "CMCI_BASE_PATH",
+          "description": "CMCI REST base path",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "DB2_LOCATION",
+          "description": "Db2 subsystem location name (required for Db2 tools)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "DB2_HOST",
+          "description": "Db2 REST hostname (defaults to ZOSMF_HOST)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "DB2_PORT",
+          "description": "Db2 REST port (default 50400)",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "DB2_BASE_PATH",
+          "description": "Db2 REST base path",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "SMF_SUMMARY_DATASET",
+          "description": "Optional SMF summary dataset for offline metrics",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "RMF_METRICS_ENABLED",
+          "description": "Query z/OSMF RMF metrics when available",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
+          "name": "RACF_AUDIT_USS_PATH",
+          "description": "USS path to RACF audit log file",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "RACF_AUDIT_DATASET",
+          "description": "Sequential dataset containing RACF audit records",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_READ_ONLY",
+          "description": "When true, blocks write tools such as submit_jcl",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_ALLOWED_TOOLS",
+          "description": "Comma-separated allowlist of MCP tool names",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_BLOCKED_TOOLS",
+          "description": "Comma-separated blocklist of MCP tool names",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_ALLOWED_DATASET_PATTERNS",
+          "description": "Comma-separated dataset patterns (e.g. USERDEV.*,SYS1.*)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_ALLOWED_USS_PATHS",
+          "description": "Comma-separated USS path prefixes",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_AUDIT_LOGGING",
+          "description": "Log every tool invocation to stderr (SIEM-friendly JSON)",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_MAX_JCL_BYTES",
+          "description": "Maximum inline JCL size for submit_jcl",
+          "isRequired": false,
+          "format": "number",
           "isSecret": false
         }
       ]

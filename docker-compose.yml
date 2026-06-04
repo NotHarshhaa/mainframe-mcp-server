@@ -6,10 +6,15 @@ services:
     image: mainframe-mcp-server:latest
     container_name: mainframe-mcp-server
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
-      # Override transport here if you want SSE instead of stdio
+      # Set these in your shell or a secrets manager — same names as MCP client `env`
+      ZOSMF_HOST: ${ZOSMF_HOST:?Set ZOSMF_HOST}
+      ZOSMF_PORT: ${ZOSMF_PORT:-443}
+      ZOSMF_USER: ${ZOSMF_USER:-}
+      ZOSMF_PASSWORD: ${ZOSMF_PASSWORD:-}
+      ZOSMF_TOKEN: ${ZOSMF_TOKEN:-}
+      ZOSMF_REJECT_UNAUTHORIZED: ${ZOSMF_REJECT_UNAUTHORIZED:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       MCP_TRANSPORT: ${MCP_TRANSPORT:-sse}
       MCP_SSE_PORT: ${MCP_SSE_PORT:-3000}
     ports:

@@ -1,11 +1,11 @@
 /**
  * Configuration loader.
  *
- * Reads from `process.env` (after `dotenv` has populated it), maps the flat
- * env vars onto the structured {@link configSchema}, validates, and returns a
- * typed, frozen {@link AppConfig}.
+ * Configuration is supplied by the MCP client (Cursor, VS Code, Claude Desktop,
+ * etc.) through the `env` block in the user's MCP config file — not from a
+ * `.env` file. The IDE prompts for values at install/setup time and passes
+ * them as environment variables when launching this server.
  */
-import { config as loadDotenv } from 'dotenv';
 import { configSchema, type AppConfig } from './schema.js';
 
 let cached: AppConfig | undefined;
@@ -62,6 +62,17 @@ function readEnv(): unknown {
   };
 }
 
+const SETUP_HINT = `
+Configure this server in your IDE's MCP settings (not a .env file).
+Copy config/mcp-client.example.json and fill in your values, or use your IDE's
+MCP install wizard when adding @notharshhaa/mainframe-mcp-server.
+
+Required at minimum:
+  ZOSMF_HOST, and either (ZOSMF_USER + ZOSMF_PASSWORD) or ZOSMF_TOKEN
+
+See docs/configuration.md for the full variable reference.
+`.trim();
+
 /**
  * Load and validate configuration. Result is cached after the first call so
  * repeated imports don't re-parse the environment.
@@ -71,14 +82,12 @@ function readEnv(): unknown {
 export function loadConfig(reload = false): AppConfig {
   if (cached && !reload) return cached;
 
-  loadDotenv();
-
   const parsed = configSchema.safeParse(readEnv());
   if (!parsed.success) {
     const details = parsed.error.issues
       .map((issue) => `  - ${issue.path.join('.') || '(root)'}: ${issue.message}`)
       .join('\n');
-    throw new Error(`Invalid configuration:\n${details}`);
+    throw new Error(`Invalid configuration:\n${details}\n\n${SETUP_HINT}`);
   }
 
   cached = Object.freeze(parsed.data);

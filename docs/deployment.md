@@ -32,8 +32,11 @@ server via `npx` and communicates over stdin/stdout.
 ```bash
 npm install
 npm run build
-npm start
 ```
+
+Configure credentials in your IDE MCP `env` block (see
+[config/mcp-client.example.json](../config/mcp-client.example.json)), then start via
+the IDE or `npm start` with the same variables exported in your shell.
 
 ### Claude Desktop / Cursor (local build)
 
@@ -68,7 +71,9 @@ the SSE transport.
 
 ```bash
 docker build -t mainframe-mcp-server .
-docker run --rm -p 3000:3000 --env-file .env \
+docker run --rm -p 3000:3000 \
+  -e ZOSMF_HOST=your-zosmf-host.internal \
+  -e ZOSMF_USER=your-user -e ZOSMF_PASSWORD=your-password \
   -e MCP_TRANSPORT=sse -e MCP_SSE_PORT=3000 \
   mainframe-mcp-server
 ```
@@ -76,10 +81,13 @@ docker run --rm -p 3000:3000 --env-file .env \
 ### docker-compose
 
 ```bash
+export ZOSMF_HOST=your-zosmf-host.internal
+export ZOSMF_USER=your-user ZOSMF_PASSWORD=your-password
 docker compose up --build
 ```
 
-The compose file defaults `MCP_TRANSPORT` to `sse` and publishes `MCP_SSE_PORT`.
+The compose file reads the same variable names as the MCP client `env` block (no
+`.env` file). It defaults `MCP_TRANSPORT` to `sse` and publishes `MCP_SSE_PORT`.
 
 ### SSE endpoints
 
@@ -94,8 +102,8 @@ The compose file defaults `MCP_TRANSPORT` to `sse` and publishes `MCP_SSE_PORT`.
 ## Option 4 — Internal service
 
 Run under a process manager (systemd, pm2) on an internal host with network
-access to z/OSMF. Supply configuration via your secrets manager rather than a
-checked-in `.env`. Use a dedicated, least-privilege service account for z/OS
+access to z/OSMF. Supply configuration via your secrets manager or MCP-style `env` variables — not
+a checked-in `.env` file. Use a dedicated, least-privilege service account for z/OS
 access.
 
 ### Example systemd unit

@@ -1,9 +1,41 @@
 # Configuration Guide
 
-All configuration is supplied through environment variables (loaded from a
-local `.env` file in development via `dotenv`). Values are validated at startup
-by a Zod schema (`src/config/schema.ts`); invalid configuration aborts startup
-with a descriptive error.
+Configuration is **not** read from a `.env` file. Values are supplied by your MCP
+client (Cursor, VS Code, Claude Desktop, etc.) in the `env` block of the MCP
+server entry. When you install from the MCP registry, the IDE uses `server.json`
+to prompt for required settings; everything is passed to this process as
+environment variables at launch.
+
+Values are validated at startup by a Zod schema (`src/config/schema.ts`).
+Invalid configuration aborts startup with a message that points you to
+[config/mcp-client.example.json](../config/mcp-client.example.json).
+
+## MCP client setup
+
+**Minimal** — copy [config/mcp-client.example.json](../config/mcp-client.example.json)
+into your IDE MCP config and fill in `ZOSMF_HOST` and credentials.
+
+**Full optional settings** — see
+[config/mcp-client.full.example.json](../config/mcp-client.full.example.json).
+
+### Cursor
+
+Edit `~/.cursor/mcp.json` (or project `.cursor/mcp.json`) and add the `mainframe`
+server block from the example file.
+
+### VS Code
+
+Add the same `mcpServers` structure to your VS Code MCP configuration (location
+depends on your MCP extension; often user or workspace MCP settings).
+
+### Claude Desktop
+
+Edit `claude_desktop_config.json` and merge the `mcpServers` entry.
+
+### Registry install
+
+Publishing metadata in [server.json](../server.json) lists every supported
+variable so marketplace installers can collect values after install.
 
 ## z/OSMF Connection
 
@@ -107,16 +139,25 @@ All enterprise variables are optional. Tools return `CONFIG_ERROR` with setup gu
 | `SECURITY_AUDIT_LOGGING` | `true` | Log every tool invocation to stderr (SIEM-friendly JSON). |
 | `SECURITY_MAX_JCL_BYTES` | `65536` | Maximum inline JCL size for `submit_jcl`. |
 
-## Example `.env`
+## Local development from source
 
-See [`.env.example`](../.env.example) for a complete starting template.
+Do not create a `.env` file for this server. Either:
+
+1. Put variables in your IDE MCP config (recommended), or
+2. Export them in your shell before `npm start`, or
+3. Pass them inline: `ZOSMF_HOST=host ZOSMF_USER=u ZOSMF_PASSWORD=p npm start`
 
 ## Integration tests (z/OSMF sandbox)
 
-Integration tests are **skipped by default** in CI. To run against a live sandbox:
+Integration tests are **skipped by default** in CI. To run against a live sandbox,
+export the same variables in your shell (or set them in your CI job):
 
 ```bash
-RUN_INTEGRATION=1 npm run test:integration
+export RUN_INTEGRATION=1
+export ZOSMF_HOST=your-sandbox
+export ZOSMF_USER=your-user
+export ZOSMF_PASSWORD=your-password
+npm run test:integration
 ```
 
 | Variable | Required | Description |

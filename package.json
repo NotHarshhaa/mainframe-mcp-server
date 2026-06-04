@@ -20,9 +20,10 @@
   },
   "files": [
     "dist",
+    "config",
+    "server.json",
     "README.md",
-    "LICENSE",
-    ".env.example"
+    "LICENSE"
   ],
   "publishConfig": {
     "access": "public"
@@ -59,7 +60,6 @@
     "@zowe/zos-files-for-zowe-sdk": "^8.0.0",
     "@zowe/zos-jobs-for-zowe-sdk": "^8.0.0",
     "@zowe/zosmf-for-zowe-sdk": "^8.0.0",
-    "dotenv": "^16.4.5",
     "pino": "^9.3.2",
     "zod": "^3.23.8"
   },

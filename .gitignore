@@ -5,10 +5,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 
-# Environment & secrets
+# Local secrets (use IDE MCP config instead)
 .env
 .env.*
-!.env.example
 
 # Logs
 logs/
