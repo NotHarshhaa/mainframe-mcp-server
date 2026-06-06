@@ -182,6 +182,10 @@ export interface FailureRisk {
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   failureCount: number;
   topAbend: string | null;
+  /** Human-readable description of the top abend, if known. */
+  topAbendDescription: string | null;
+  /** Unix-epoch ms of the most recent failure (null when exec-ended is unavailable). */
+  lastOccurrence: number | null;
   trend: 'STABLE' | 'INCREASING' | 'DECREASING';
   recommendation: string;
 }
@@ -190,6 +194,8 @@ export interface FailureRisk {
 export interface RootCauseReport {
   analysis: JobFailureAnalysis;
   confidence: 'LOW' | 'MEDIUM' | 'HIGH';
+  /** Normalized 0–100 health score (100 = perfectly clean, 0 = systemic failure). */
+  healthScore: number;
   similarIncidents: string[];
   correlatedAbends: { code: string; count: number }[];
   actionItems: string[];
