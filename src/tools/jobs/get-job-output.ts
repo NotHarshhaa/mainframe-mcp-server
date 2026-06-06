@@ -22,6 +22,12 @@ const inputShape = {
     .string()
     .optional()
     .describe('Optional DD name (e.g. "JESMSGLG"). Omit to list available spool files.'),
+  maxLines: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('Optional limit on output lines returned (caps at server configuration maximum).'),
 };
 
 export const registerGetJobOutputTool: ToolRegistrar = (server, ctx) => {
@@ -29,7 +35,7 @@ export const registerGetJobOutputTool: ToolRegistrar = (server, ctx) => {
     'get_job_output',
     'Retrieve spool output for a job. Lists spool files, or returns one DD when ddName is given.',
     inputShape,
-    securedHandler(ctx, 'get_job_output', async ({ jobId, ddName }) => {
+    securedHandler(ctx, 'get_job_output', async ({ jobId, ddName, maxLines }) => {
       const job = await fetchJob(ctx, jobId);
       const files = await fetchSpoolFiles(ctx, job.jobName, job.jobId);
 
@@ -46,14 +52,15 @@ export const registerGetJobOutputTool: ToolRegistrar = (server, ctx) => {
       }
 
       const raw = await fetchSpoolContent(ctx, job.jobName, job.jobId, match.id);
-      const { text, truncated, totalLines } = truncateLines(raw, ctx.config.limits.maxJobOutputLines);
+      const cap = Math.min(maxLines ?? ctx.config.limits.maxJobOutputLines, ctx.config.limits.maxJobOutputLines);
+      const { text, truncated, totalLines } = truncateLines(raw, cap);
       ctx.logger.debug({ jobId, ddName, totalLines, truncated }, 'get_job_output');
 
       const header = formatContentHeader(
         `Output of ${job.jobName} (${job.jobId}) DD=${match.ddName}`,
         truncated,
         totalLines,
-        ctx.config.limits.maxJobOutputLines,
+        cap,
       );
       return textResult(header + text);
     }),
