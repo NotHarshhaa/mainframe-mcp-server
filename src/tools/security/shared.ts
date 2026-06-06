@@ -26,11 +26,23 @@ export async function loadRacfAuditRecords(ctx: ToolContext): Promise<RacfAuditE
     .map(parseRacfAuditLine);
 }
 
-/** Query RACF audit records with optional filters. */
+/** Query RACF audit records with optional filters and result cap. */
 export async function queryRacfAudit(
   ctx: ToolContext,
-  filters: { user?: string; resource?: string; hours?: number },
+  filters: {
+    user?: string;
+    resource?: string;
+    hours?: number;
+    event?: string;
+    result?: string;
+    class?: string;
+  },
+  maxResults?: number,
 ): Promise<RacfAuditEntry[]> {
   const records = await loadRacfAuditRecords(ctx);
-  return filterAuditEntries(records, filters);
+  let filtered = filterAuditEntries(records, filters);
+  if (maxResults != null && filtered.length > maxResults) {
+    filtered = filtered.slice(0, maxResults);
+  }
+  return filtered;
 }

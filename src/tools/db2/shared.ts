@@ -16,6 +16,22 @@ interface Db2SqlResponse {
   sqlState?: string;
 }
 
+/**
+ * Sanitize a value for safe inclusion as a SQL literal in read-only catalog queries.
+ * - Escapes single quotes (SQL injection prevention)
+ * - Strips statement terminators and newlines
+ * - Strips inline comment sequences (-- and /*)
+ * - Caps at 64 characters
+ */
+export function sanitizeSqlLiteral(value: string): string {
+  return value
+    .replace(/'/g, "''")           // escape single quotes
+    .replace(/--[^\n]*/g, '')      // strip -- line comments
+    .replace(/\/\*[\s\S]*?\*\//g, '') // strip block comments
+    .replace(/[;\r\n]/g, '')       // strip statement terminators and newlines
+    .slice(0, 64);
+}
+
 /** Execute a read-only SQL statement via Db2 REST. */
 export async function executeDb2Sql(
   ctx: ToolContext,
@@ -50,35 +66,59 @@ export async function listDb2Subsystems(ctx: ToolContext): Promise<string[]> {
   return [ctx.config.enterprise.db2Location!];
 }
 
-/** Sanitize a value for use in a read-only SQL literal (Db2 catalog search). */
-function sanitizeSqlLiteral(value: string): string {
-  return value
-    .replace(/'/g, "''")
-    .replace(/[;\r\n]/g, '')
-    .slice(0, 64);
-}
+/** Valid Db2 catalog object type codes for filtering. */
+const VALID_CATALOG_TYPES = ['T', 'V', 'A', 'M', 'X'] as const;
+type CatalogType = typeof VALID_CATALOG_TYPES[number];
+
+/** Friendly type name mapping for display. */
+const TYPE_NAMES: Record<string, string> = {
+  T: 'TABLE',
+  V: 'VIEW',
+  A: 'ALIAS',
+  M: 'MATERIALIZED QUERY TABLE',
+  X: 'AUXILIARY TABLE',
+};
 
 /** Search the Db2 catalog for tables, views, or aliases. */
 export async function searchDb2Catalog(
   ctx: ToolContext,
   pattern: string,
   schema?: string,
+  type?: string,
+  maxResults = 50,
 ): Promise<Db2CatalogEntry[]> {
   const likePattern = sanitizeSqlLiteral(pattern).replace(/\*/g, '%').replace(/\?/g, '_');
-  const schemaFilter = schema
-    ? `AND CREATOR = '${sanitizeSqlLiteral(schema)}'`
-    : '';
+  const schemaFilter = schema ? `AND CREATOR = '${sanitizeSqlLiteral(schema)}'` : '';
+
+  // Validate and build type filter
+  let typeFilter = '';
+  if (type) {
+    const upper = type.trim().toUpperCase();
+    // Accept full words like "TABLE" or short codes like "T"
+    const code =
+      Object.entries(TYPE_NAMES).find(([, name]) => name === upper)?.[0] ??
+      (VALID_CATALOG_TYPES.includes(upper as CatalogType) ? upper : null);
+    if (code) typeFilter = `AND TYPE = '${code}'`;
+  }
+
+  const limit = Math.min(maxResults, 200);
   const sql = `
-    SELECT CREATOR, NAME, TYPE
+    SELECT CREATOR, NAME, TYPE,
+           CHAR(BIGINT(CARDF)) AS ROWCOUNT,
+           CHAR(CREATEDTS, ISO) AS CREATED,
+           REMARKS
     FROM SYSIBM.SYSTABLES
-    WHERE NAME LIKE '${likePattern}' ${schemaFilter}
-    FETCH FIRST 50 ROWS ONLY
+    WHERE NAME LIKE '${likePattern}' ${schemaFilter} ${typeFilter}
+    FETCH FIRST ${limit} ROWS ONLY
   `.trim();
 
   const rows = await executeDb2Sql(ctx, sql);
   return rows.map((row) => ({
     schema: String(row.CREATOR ?? row.creator ?? '—'),
     name: String(row.NAME ?? row.name ?? '—'),
-    type: String(row.TYPE ?? row.type ?? '—'),
+    type: TYPE_NAMES[String(row.TYPE ?? row.type ?? '')] ?? String(row.TYPE ?? row.type ?? '—'),
+    rowCount: row.ROWCOUNT != null ? String(row.ROWCOUNT) : undefined,
+    created: row.CREATED != null ? String(row.CREATED) : undefined,
+    remarks: row.REMARKS != null ? String(row.REMARKS).trim() || undefined : undefined,
   }));
 }

@@ -9,7 +9,10 @@ import { readDataset } from '../datasets/shared.js';
 import { truncateLines } from '../../utils/formatters.js';
 
 /** Fetch SMF/RMF metrics from z/OSMF RMF and/or a configured summary dataset. */
-export async function fetchSmfMetrics(ctx: ToolContext): Promise<SmfMetric[]> {
+export async function fetchSmfMetrics(
+  ctx: ToolContext,
+  categoryFilter?: string,
+): Promise<SmfMetric[]> {
   const metrics: SmfMetric[] = [];
   const { enterprise } = ctx.config;
 
@@ -26,6 +29,16 @@ export async function fetchSmfMetrics(ctx: ToolContext): Promise<SmfMetric[]> {
     const raw = await readDataset(ctx, enterprise.smfSummaryDataset);
     const { text } = truncateLines(raw, ctx.config.limits.maxDatasetReadLines);
     metrics.push(...parseSmfSummaryText(text));
+  }
+
+  // Apply category filter (case-insensitive substring match on category or name)
+  if (categoryFilter) {
+    const lower = categoryFilter.toLowerCase();
+    return metrics.filter(
+      (m) =>
+        (m.category ?? '').toLowerCase().includes(lower) ||
+        m.name.toLowerCase().includes(lower),
+    );
   }
 
   return metrics;

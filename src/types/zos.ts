@@ -141,6 +141,12 @@ export interface CicsRegion {
   sysid?: string;
   jobname?: string;
   jobid?: string;
+  /** MVS group identifier. */
+  mvsgroupid?: string;
+  /** CICS version string, e.g. "730". */
+  version?: string;
+  /** Time the region has been active (human-readable or ISO-format). */
+  uptime?: string;
 }
 
 /** A CICS transaction definition from CMCI. */
@@ -148,7 +154,12 @@ export interface CicsTransaction {
   tranid: string;
   program: string;
   status?: string;
+  /** Number of currently active tasks for this transaction. */
   taskcount?: string;
+  /** Transaction priority (1–255). */
+  priority?: string;
+  /** Associated profile name. */
+  profile?: string;
 }
 
 /** A Db2 catalog object. */
@@ -156,6 +167,12 @@ export interface Db2CatalogEntry {
   name: string;
   schema: string;
   type: string;
+  /** Number of rows (CARDF from SYSIBM.SYSTABLES), if available. */
+  rowCount?: string;
+  /** Creation timestamp, if available. */
+  created?: string;
+  /** REMARKS / table comments, if available. */
+  remarks?: string;
 }
 
 /** A batch failure risk assessment. */
