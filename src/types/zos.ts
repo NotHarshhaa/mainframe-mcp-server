@@ -56,20 +56,30 @@ export interface Dataset {
   recfm?: string;
   /** Logical record length. */
   lrecl?: number;
+  /** Block size in bytes. */
+  blksize?: number;
   /** Volume serial the dataset resides on. */
   volume?: string;
   /** True when the dataset is migrated/archived (HSM). */
   migrated?: boolean;
+  /** True when the dataset is a PDSE (library) rather than a classic PDS. */
+  pdse?: boolean;
 }
 
 /** A PDS member. */
 export interface Member {
   /** Member name. */
   name: string;
-  /** Last-modified date/time if available. */
+  /** Last-modified date (YYYY/MM/DD) if available. */
   modified?: string;
+  /** Last-modified time (HH:MM) if available. */
+  changedTime?: string;
   /** Member version if version tracking is enabled. */
   version?: number;
+  /** Userid that last modified the member (available when stats fetched). */
+  user?: string;
+  /** Approximate record/block count (available when stats fetched). */
+  size?: number;
 }
 
 /** A USS (Unix System Services) directory entry. */

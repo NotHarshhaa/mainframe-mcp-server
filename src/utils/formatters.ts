@@ -150,17 +150,30 @@ export function formatSpoolFiles(jobName: string, jobId: string, files: SpoolFil
 }
 
 /** Format a dataset list. */
-export function formatDatasetList(datasets: Dataset[]): string {
+export function formatDatasetList(
+  datasets: Dataset[],
+  opts?: { maxResults?: number; totalMatched?: number },
+): string {
   if (datasets.length === 0) return 'No datasets matched the given pattern.';
+  const shown = datasets.length;
+  const total = opts?.totalMatched ?? shown;
+  const capped = opts?.maxResults != null && shown < total;
+
   const rows = datasets.map((ds) => [
     ds.name,
     ds.dsorg ?? '—',
     ds.recfm ?? '—',
     ds.lrecl != null ? String(ds.lrecl) : '—',
+    ds.blksize != null ? String(ds.blksize) : '—',
     ds.migrated ? 'MIGRATED' : (ds.volume ?? '—'),
   ]);
-  const header = `Datasets (${datasets.length} found)\n\n`;
-  return header + renderTable(['Name', 'DSORG', 'RECFM', 'LRECL', 'Volume'], rows);
+  let header = `Datasets (${shown} shown`;
+  header += total > shown ? ` of ${total} matched)\n\n` : ')\n\n';
+  let body = header + renderTable(['Name', 'DSORG', 'RECFM', 'LRECL', 'BLKSIZE', 'Volume'], rows);
+  if (capped) {
+    body += `\n\n[Showing first ${shown} of ${total} datasets. Use a narrower pattern or dsorg filter to reduce results.]`;
+  }
+  return body;
 }
 
 /** Format a PDS member list. */
@@ -170,9 +183,72 @@ export function formatMemberList(dsn: string, members: Member[], pattern?: strin
       ? `No members in ${dsn} matched pattern "${pattern}".`
       : `No members found in ${dsn}.`;
   }
-  const rows = members.map((member) => [member.name, member.modified ?? '—']);
+
+  // Detect whether any member carries extended stats
+  const hasStats = members.some((m) => m.user != null || m.size != null);
+
   const header = `Members of ${dsn} (${members.length} found)\n\n`;
+
+  if (hasStats) {
+    const rows = members.map((m) => [
+      m.name,
+      m.modified ?? '—',
+      m.changedTime ?? '—',
+      m.user ?? '—',
+      m.size != null ? String(m.size) : '—',
+    ]);
+    return header + renderTable(['Member', 'Modified', 'Time', 'User', 'Size'], rows);
+  }
+
+  const rows = members.map((m) => [m.name, m.modified ?? '—']);
   return header + renderTable(['Member', 'Modified'], rows);
+}
+
+/** Format a full dataset info response (attributes + optional member section). */
+export function formatDatasetInfo(
+  info: Dataset,
+  members?: { total: number; recent: Member[] },
+): string {
+  const dsType =
+    info.pdse ? 'PDSE (Library)'
+    : info.dsorg === 'PO' ? 'PDS'
+    : info.dsorg === 'PS' ? 'Sequential'
+    : info.dsorg === 'DA' ? 'Direct Access'
+    : info.dsorg ?? '—';
+
+  const attrRows: string[][] = [
+    ['Name', info.name],
+    ['Type', dsType],
+    ['DSORG', info.dsorg ?? '—'],
+    ['RECFM', info.recfm ?? '—'],
+    ['LRECL', info.lrecl != null ? String(info.lrecl) : '—'],
+    ['BLKSIZE', info.blksize != null ? String(info.blksize) : '—'],
+    ['Volume', info.migrated ? 'MIGRATED' : (info.volume ?? '—')],
+  ];
+
+  const attrTable = renderTable(['Attribute', 'Value'], attrRows);
+  const sections: StructuredSection[] = [{ heading: 'Attributes', body: attrTable }];
+
+  if (members != null) {
+    const memberHeader = `Total members: ${members.total}`;
+    if (members.recent.length === 0) {
+      sections.push({ heading: 'Members', body: memberHeader });
+    } else {
+      const rows = members.recent.map((m) => [
+        m.name,
+        m.modified ?? '—',
+        m.user ?? '—',
+      ]);
+      const table = renderTable(['Member', 'Modified', 'User'], rows);
+      const note =
+        members.total > members.recent.length
+          ? `\n[Showing ${members.recent.length} most-recently-modified of ${members.total} total]`
+          : '';
+      sections.push({ heading: 'Members', body: `${memberHeader}\n\n${table}${note}` });
+    }
+  }
+
+  return formatStructuredResponse(`Dataset Info — ${info.name}`, sections);
 }
 
 /** Format a USS directory listing. */
