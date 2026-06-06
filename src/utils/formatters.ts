@@ -277,19 +277,43 @@ export function formatDatasetInfo(
   return formatStructuredResponse(`Dataset Info — ${info.name}`, sections);
 }
 
-/** Format a USS directory listing. */
-export function formatUssListing(path: string, entries: UssEntry[]): string {
+/** Format a USS directory listing with permissions, ownership, size, modified date, and type counts. */
+export function formatUssListing(
+  path: string,
+  entries: UssEntry[],
+  opts?: { totalCount?: number },
+): string {
   if (entries.length === 0) return `Directory ${path} is empty.`;
-  const rows = entries.map((entry) => [
-    entry.mode ?? '—',
-    entry.user ?? '—',
-    entry.group ?? '—',
-    entry.size != null ? String(entry.size) : '—',
-    entry.type,
-    entry.name,
-  ]);
-  const header = `USS listing of ${path} (${entries.length} entries)\n\n`;
-  return header + renderTable(['Mode', 'User', 'Group', 'Size', 'Type', 'Name'], rows);
+
+  const rows = entries.map((entry) => {
+    const nameCell =
+      entry.type === 'symlink' && entry.target ? `${entry.name} -> ${entry.target}` : entry.name;
+    return [
+      entry.mode ?? '—',
+      entry.user ?? '—',
+      entry.group ?? '—',
+      entry.size != null ? String(entry.size) : '—',
+      entry.modified ?? '—',
+      entry.type,
+      nameCell,
+    ];
+  });
+
+  // Build type-count summary
+  const counts: Record<string, number> = {};
+  for (const e of entries) counts[e.type] = (counts[e.type] ?? 0) + 1;
+  const summary = (['file', 'directory', 'symlink', 'other'] as const)
+    .filter((t) => counts[t])
+    .map((t) => `${counts[t]} ${t}${counts[t] > 1 ? (t === 'directory' ? 'ies' : 's') : t === 'directory' ? 'y' : ''}`)
+    .join(', ');
+
+  const total = opts?.totalCount ?? entries.length;
+  const shown = entries.length;
+  const countLine = shown < total
+    ? `USS listing of ${path} (showing ${shown} of ${total} entries — ${summary})\n\n`
+    : `USS listing of ${path} (${shown} entries — ${summary})\n\n`;
+
+  return countLine + renderTable(['Mode', 'User', 'Group', 'Size', 'Modified', 'Type', 'Name'], rows);
 }
 
 /** Format a failed-job analysis bundle (compact single-section). */

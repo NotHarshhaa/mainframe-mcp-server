@@ -86,7 +86,7 @@ export interface Member {
 export interface UssEntry {
   /** Entry name (relative to the listed directory). */
   name: string;
-  /** "file", "directory", or "symlink". */
+  /** "file", "directory", "symlink", or "other". */
   type: 'file' | 'directory' | 'symlink' | 'other';
   /** Size in bytes for regular files. */
   size?: number;
@@ -98,6 +98,10 @@ export interface UssEntry {
   mode?: string;
   /** Last modified timestamp. */
   modified?: string;
+  /** Symlink target path (populated for symlinks). */
+  target?: string;
+  /** Inode number. */
+  inode?: number;
 }
 
 /** Result of analyzing a failed job. */
