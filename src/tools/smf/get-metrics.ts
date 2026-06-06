@@ -2,7 +2,8 @@
  * `get_smf_metrics` — expose SMF/RMF performance metrics.
  */
 import type { ToolRegistrar } from '../../types/tools.js';
-import { ConfigError, safeHandler } from '../../utils/errors.js';
+import { ConfigError } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { fetchSmfMetrics } from './shared.js';
 
@@ -11,7 +12,7 @@ export const registerSmfMetricsTool: ToolRegistrar = (server, ctx) => {
     'get_smf_metrics',
     'Retrieve SMF/RMF performance metrics from z/OSMF RMF and/or a configured SMF summary dataset.',
     {},
-    safeHandler(async () => {
+    securedHandler(ctx, 'mainframe_get_smf_metrics', async () => {
       const { rmfMetricsEnabled, smfSummaryDataset } = ctx.config.enterprise;
       if (!rmfMetricsEnabled && !smfSummaryDataset) {
         throw new ConfigError(

@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { renderTable, textResult } from '../../utils/formatters.js';
 import { searchDb2Catalog } from './shared.js';
 
@@ -20,7 +20,7 @@ export const registerSearchDb2CatalogTool: ToolRegistrar = (server, ctx) => {
     'search_db2_catalog',
     'Search the Db2 catalog for tables and views matching a name pattern (Db2 REST required).',
     inputShape,
-    safeHandler(async ({ pattern, schema }) => {
+    securedHandler(ctx, 'mainframe_search_db2_catalog', async ({ pattern, schema }) => {
       const entries = await searchDb2Catalog(ctx, pattern, schema);
       if (entries.length === 0) {
         return textResult(`No Db2 catalog objects matched pattern "${pattern}".`);

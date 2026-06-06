@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { queryRacfAudit } from './shared.js';
 
@@ -23,7 +23,7 @@ export const registerQueryRacfAuditTool: ToolRegistrar = (server, ctx) => {
     'query_racf_audit',
     'Query RACF security audit records from a configured USS path or dataset (RACF_AUDIT_USS_PATH / RACF_AUDIT_DATASET).',
     inputShape,
-    safeHandler(async ({ user, resource, hours }) => {
+    securedHandler(ctx, 'mainframe_query_racf_audit', async ({ user, resource, hours }) => {
       const entries = await queryRacfAudit(ctx, { user, resource, hours });
       if (entries.length === 0) {
         return textResult('No RACF audit records matched the given filters.');

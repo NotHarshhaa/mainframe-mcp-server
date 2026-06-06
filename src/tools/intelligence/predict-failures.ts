@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { predictBatchFailures } from './shared.js';
 
@@ -21,7 +21,7 @@ export const registerPredictFailuresTool: ToolRegistrar = (server, ctx) => {
     'predict_batch_failures',
     'Predict batch failure risk by scoring job names with recurring failures, abend patterns, and trends.',
     inputShape,
-    safeHandler(async ({ hours }) => {
+    securedHandler(ctx, 'mainframe_predict_batch_failures', async ({ hours }) => {
       const window = hours ?? 168;
       const risks = await predictBatchFailures(ctx, window);
 

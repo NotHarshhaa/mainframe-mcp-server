@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { lookupAbend, searchAbendCodes } from '../../utils/abend-codes.js';
-import { safeHandler } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { formatAbendCatalog, formatAbendInfo, formatStructuredResponse, textResult } from '../../utils/formatters.js';
 
 const inputShape = {
@@ -28,7 +28,7 @@ export const registerLookupAbendTool: ToolRegistrar = (server, ctx) => {
     'lookup_abend_code',
     'Look up z/OS abend codes (S0C7, S806, S222, S0C4, etc.) with explanations, common causes, and fixes.',
     inputShape,
-    safeHandler(async ({ code, search }) => {
+    securedHandler(ctx, 'mainframe_lookup_abend_code', async ({ code, search }) => {
       if (code) {
         const info = lookupAbend(code);
         if (!info) {

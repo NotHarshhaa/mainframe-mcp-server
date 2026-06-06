@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { renderTable, textResult } from '../../utils/formatters.js';
 import { listCicsRegions } from './shared.js';
 
@@ -19,7 +19,7 @@ export const registerListCicsRegionsTool: ToolRegistrar = (server, ctx) => {
     'list_cics_regions',
     'List CICS regions in a CMCI context (requires CMCI_CONTEXT and CMCI connectivity).',
     inputShape,
-    safeHandler(async ({ context }) => {
+    securedHandler(ctx, 'mainframe_list_cics_regions', async ({ context }) => {
       const regions = await listCicsRegions(ctx, context);
       if (regions.length === 0) return textResult('No CICS regions found in the specified context.');
 

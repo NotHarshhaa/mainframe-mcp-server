@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import {
   formatFailureAnalysis,
   formatStructuredResponse,
@@ -27,7 +27,7 @@ export const registerAnalyzeRootCauseTool: ToolRegistrar = (server, ctx) => {
     'analyze_root_cause',
     'AI-assisted root-cause analysis: failure details, similar incidents, correlated abends, and prioritized action items.',
     inputShape,
-    safeHandler(async ({ jobId, lookbackHours }) => {
+    securedHandler(ctx, 'mainframe_analyze_root_cause', async ({ jobId, lookbackHours }) => {
       const window = lookbackHours ?? 72;
       const report = await buildRootCauseReport(ctx, jobId, window);
 

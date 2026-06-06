@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { textResult } from '../../utils/formatters.js';
 import { getCicsRegion } from './shared.js';
 
@@ -17,7 +17,7 @@ export const registerGetCicsRegionTool: ToolRegistrar = (server, ctx) => {
     'get_cics_region_status',
     'Get the current status and attributes of a CICS region via CMCI.',
     inputShape,
-    safeHandler(async ({ region, context }) => {
+    securedHandler(ctx, 'mainframe_get_cics_region_status', async ({ region, context }) => {
       const info = await getCicsRegion(ctx, region, context);
       ctx.logger.debug({ region: info.applid, status: info.status }, 'get_cics_region_status');
       const lines = [

@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { safeHandler } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { renderTable, textResult } from '../../utils/formatters.js';
 import { listCicsTransactions } from './shared.js';
 
@@ -17,7 +17,7 @@ export const registerListCicsTransactionsTool: ToolRegistrar = (server, ctx) => 
     'list_cics_transactions',
     'List CICS transaction definitions installed in a region via CMCI.',
     inputShape,
-    safeHandler(async ({ region, context }) => {
+    securedHandler(ctx, 'mainframe_list_cics_transactions', async ({ region, context }) => {
       const transactions = await listCicsTransactions(ctx, region, context);
       if (transactions.length === 0) {
         return textResult(`No transactions found for region ${region}.`);

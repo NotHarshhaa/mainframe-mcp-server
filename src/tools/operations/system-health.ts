@@ -3,7 +3,7 @@
  */
 import type { ToolRegistrar } from '../../types/tools.js';
 import { GetJobs } from '@zowe/zos-jobs-for-zowe-sdk';
-import { safeHandler } from '../../utils/errors.js';
+import { securedHandler } from '../../utils/tool-handler.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { isFailedJob, normalizeJob } from '../jobs/shared.js';
 import { aggregateAbends } from './shared.js';
@@ -14,7 +14,7 @@ export const registerSystemHealthTool: ToolRegistrar = (server, ctx) => {
     'system_health_summary',
     'Produce a high-level operational health snapshot: active jobs, failures, and top abends.',
     {},
-    safeHandler(async () => {
+    securedHandler(ctx, 'mainframe_system_health_summary', async () => {
       const raws = await GetJobs.getJobsByOwnerAndPrefix(ctx.session, '*', '*');
       const jobs = raws.map(normalizeJob);
 
