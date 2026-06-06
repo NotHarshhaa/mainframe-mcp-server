@@ -106,9 +106,9 @@ describe('formatters', () => {
         suggestedFix: 'Verify the module is linked.',
       };
       const out = formatFailureAnalysis(analysis);
-      expect(out).toContain('Job:     PAYJOB01 (JOB01234)');
-      expect(out).toContain('Step:    STEP030 - LOADPGM');
-      expect(out).toContain('Fix:     Verify the module is linked.');
+      expect(out).toContain('Job:       PAYJOB01 (JOB01234)');
+      expect(out).toContain('Step:      STEP030 — LOADPGM');
+      expect(out).toContain('Fix:       Verify the module is linked.');
     });
   });
 

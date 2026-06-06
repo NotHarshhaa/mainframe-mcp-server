@@ -107,6 +107,8 @@ export interface JobFailureAnalysis {
   abendCode: string | null;
   /** Step where the failure occurred, if identifiable. */
   failedStep: string | null;
+  /** Step name where a cancellation was issued, if identifiable. */
+  cancelledStep?: string | null;
   /** Program/module name associated with the failure, if identifiable. */
   failedProgram: string | null;
   /** Human-readable explanation of the failure. */

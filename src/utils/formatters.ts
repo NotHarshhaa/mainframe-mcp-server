@@ -100,8 +100,21 @@ export function formatContentHeader(
   return `${label}\n${rule}${notice}\n`;
 }
 
-/** Format a list of jobs as a table. */
-export function formatJobList(jobs: Job[], totalCount?: number): string {
+/** Determine if a job has failed — mirrors isFailedJob in jobs/shared without the circular import. */
+function isJobFailedLocal(job: Job): boolean {
+  const rc = (job.returnCode ?? '').toUpperCase();
+  if (!rc) return false;
+  if (/ABEND|JCL ERROR|SEC ERROR|CANCEL/.test(rc)) return true;
+  const ccMatch = rc.match(/CC\s+(\d+)/);
+  return ccMatch ? Number(ccMatch[1]) >= 8 : false;
+}
+
+/** Format a list of jobs as a table with optional filter summary. */
+export function formatJobList(
+  jobs: Job[],
+  totalCount?: number,
+  opts?: { owner?: string; prefix?: string; status?: string; returnCode?: string },
+): string {
   if (jobs.length === 0) return 'No jobs matched the given filters.';
   const rows = jobs.map((job) => [
     job.jobName,
@@ -113,7 +126,17 @@ export function formatJobList(jobs: Job[], totalCount?: number): string {
   const shown = jobs.length;
   const total = totalCount ?? shown;
   let header = `Jobs (${shown} shown`;
-  header += total > shown ? ` of ${total} matched)\n\n` : ')\n\n';
+  header += total > shown ? ` of ${total} matched)` : ')';
+
+  // Emit active filter summary
+  const filters: string[] = [];
+  if (opts?.owner && opts.owner !== '*') filters.push(`owner=${opts.owner}`);
+  if (opts?.prefix && opts.prefix !== '*') filters.push(`prefix=${opts.prefix}`);
+  if (opts?.status) filters.push(`status=${opts.status}`);
+  if (opts?.returnCode) filters.push(`returnCode~"${opts.returnCode}"`);
+  if (filters.length > 0) header += `  [filters: ${filters.join(', ')}]`;
+  header += '\n\n';
+
   let body = header + renderTable(['Job Name', 'Job ID', 'Owner', 'Status', 'Return Code'], rows);
   if (total > shown) {
     body += `\n\n[Showing first ${shown} of ${total} jobs. Narrow owner, prefix, or status filters.]`;
@@ -123,11 +146,14 @@ export function formatJobList(jobs: Job[], totalCount?: number): string {
 
 /** Format a single job's status as an aligned key/value block. */
 export function formatJobStatus(job: Job): string {
+  const failed = isJobFailedLocal(job);
+  const failedMark = job.returnCode == null ? '' : (failed ? '  ✗' : '  ✓');
   const lines = [
     `Job:          ${job.jobName} (${job.jobId})`,
     `Owner:        ${job.owner}`,
     `Status:       ${job.status}`,
-    `Return Code:  ${job.returnCode ?? '(running)'}`,
+    `Return Code:  ${job.returnCode ?? '(running)'}${failedMark}`,
+    `Failed:       ${job.returnCode == null ? '(pending)' : (failed ? 'Yes' : 'No')}`,
   ];
   if (job.class) lines.push(`Class:        ${job.class}`);
   if (job.subsystem) lines.push(`Subsystem:    ${job.subsystem}`);
@@ -266,25 +292,74 @@ export function formatUssListing(path: string, entries: UssEntry[]): string {
   return header + renderTable(['Mode', 'User', 'Group', 'Size', 'Type', 'Name'], rows);
 }
 
-/** Format a failed-job analysis bundle (matches README Example 1 shape). */
+/** Format a failed-job analysis bundle (compact single-section). */
 export function formatFailureAnalysis(analysis: JobFailureAnalysis): string {
   const { job } = analysis;
+  const stepInfo = analysis.failedStep ?? analysis.cancelledStep ?? '(unknown)';
   const lines = [
-    `Job:     ${job.jobName} (${job.jobId})`,
-    `Status:  ${job.returnCode ?? job.status}`,
-    `Step:    ${analysis.failedStep ?? '(unknown)'}${
-      analysis.failedProgram ? ` - ${analysis.failedProgram}` : ''
+    `Job:       ${job.jobName} (${job.jobId})`,
+    `Status:    ${job.returnCode ?? job.status}`,
+    `Step:      ${stepInfo}${
+      analysis.failedProgram ? ` — ${analysis.failedProgram}` : ''
     }`,
-    `Reason:  ${analysis.reason}`,
-  ];
+    analysis.cancelledStep ? `Cancelled: Yes (step ${analysis.cancelledStep})` : null,
+    `Reason:    ${analysis.reason}`,
+  ].filter((l): l is string => l != null);
   if (analysis.evidence.length > 0) {
-    lines.push(`Spool:   ${analysis.evidence[0]}`);
+    lines.push(`Spool:     ${analysis.evidence[0]}`);
     for (const extra of analysis.evidence.slice(1)) {
-      lines.push(`         ${extra}`);
+      lines.push(`           ${extra}`);
     }
   }
-  lines.push(`Fix:     ${analysis.suggestedFix}`);
+  lines.push(`Fix:       ${analysis.suggestedFix}`);
   return lines.join('\n');
+}
+
+/**
+ * Rich 3-section failure analysis formatter for AI agent consumption.
+ * Produces Summary / Evidence / Remediation sections.
+ */
+export function formatAnalysisFull(
+  analysis: JobFailureAnalysis,
+  opts?: { includeEvidence?: boolean },
+): string {
+  const { job } = analysis;
+  const includeEvidence = opts?.includeEvidence !== false;
+  const stepInfo = analysis.failedStep ?? analysis.cancelledStep ?? '(not identified)';
+  const failed = isJobFailedLocal(job);
+
+  // Section 1: Summary
+  const summaryLines = [
+    `Job:          ${job.jobName} (${job.jobId})`,
+    `Owner:        ${job.owner}`,
+    `Status:       ${job.returnCode ?? job.status}${failed ? '  ✗' : '  ✓'}`,
+    `Failed Step:  ${stepInfo}`,
+    analysis.failedProgram ? `Program:      ${analysis.failedProgram}` : null,
+    analysis.abendCode ? `Abend Code:   ${analysis.abendCode}` : null,
+    analysis.cancelledStep ? `Cancelled:    Yes (step ${analysis.cancelledStep})` : null,
+    `Reason:       ${analysis.reason}`,
+  ].filter((l): l is string => l != null);
+
+  const sections: StructuredSection[] = [
+    { heading: 'Summary', body: summaryLines.join('\n') },
+  ];
+
+  // Section 2: Evidence
+  if (includeEvidence) {
+    const evidenceBody =
+      analysis.evidence.length === 0
+        ? '[No diagnostic evidence collected from spool output]'
+        : analysis.evidence.map((line, i) => `  ${i + 1}. ${line}`).join('\n');
+    sections.push({ heading: 'Evidence (from spool)', body: evidenceBody });
+  }
+
+  // Section 3: Remediation
+  sections.push({ heading: 'Remediation', body: analysis.suggestedFix });
+
+  return formatStructuredResponse(
+    `Job Failure Analysis — ${job.jobName} (${job.jobId})`,
+    sections,
+  );
 }
 
 /** Format a single abend-code reference entry for agent consumption. */
