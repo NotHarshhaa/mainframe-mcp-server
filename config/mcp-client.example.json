@@ -12,7 +12,7 @@
         "ZOSMF_PASSWORD": "",
         "ZOSMF_REJECT_UNAUTHORIZED": "true",
         "LOG_LEVEL": "info",
-        "SECURITY_READ_ONLY": "false",
+        "SECURITY_READ_ONLY": "true",
         "SECURITY_AUDIT_LOGGING": "true"
       }
     }

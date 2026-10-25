@@ -7,27 +7,54 @@
 </p>
 
 <p align="center">
-  <a href="https://www.typescriptlang.org/">
-    <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+  <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/NotHarshhaa/mainframe-mcp-server/ci.yml?branch=master&label=CI&style=for-the-badge" alt="CI status" />
   </a>
+  <a href="https://www.npmjs.com/package/@notharshhaa/mainframe-mcp-server">
+    <img src="https://img.shields.io/npm/v/@notharshhaa/mainframe-mcp-server?style=for-the-badge&color=FBBF24" alt="npm version" />
+  </a>
+  <a href="https://www.typescriptlang.org/">
+    <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  </a>
+  <img src="https://img.shields.io/badge/Node-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+" />
   <a href="https://github.com/modelcontextprotocol/typescript-sdk">
-    <img src="https://img.shields.io/badge/MCP-SDK-8B5CF6?style=for-the-badge" />
+    <img src="https://img.shields.io/badge/MCP-SDK-8B5CF6?style=for-the-badge" alt="MCP SDK" />
   </a>
   <a href="https://github.com/zowe/zowe-cli">
-    <img src="https://img.shields.io/badge/Zowe-SDK-22C55E?style=for-the-badge" />
+    <img src="https://img.shields.io/badge/Zowe-SDK-22C55E?style=for-the-badge" alt="Zowe SDK" />
   </a>
   <a href="./LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-FBBF24?style=for-the-badge" />
+    <img src="https://img.shields.io/badge/License-MIT-FBBF24?style=for-the-badge" alt="MIT License" />
   </a>
-  <img src="https://img.shields.io/badge/Status-Stable-22C55E?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Status-Stable-22C55E?style=for-the-badge" alt="Status: Stable" />
 </p>
 
-> **An enterprise-grade Model Context Protocol (MCP) server for IBM z/OS environments.**  
+> **An enterprise-grade Model Context Protocol (MCP) server for IBM z/OS environments.**
 > Bridges MCP-compatible AI agents with mainframe resources — jobs, datasets, USS, and operational diagnostics — using the Zowe SDK (Open Mainframe Project) as the connectivity layer.
 
 <p align="center">
   <img src="./public/banner.png" alt="mainframe-mcp-server — Bridge AI agents with IBM z/OS via MCP and Zowe SDK" width="100%" />
 </p>
+
+---
+
+## Contents
+
+- [What it does](#what-it-does)
+- [How it's different](#how-its-different)
+- [z/OS prerequisites](#zos-prerequisites)
+- [Tools](#tools)
+- [Enterprise security](#enterprise-security)
+- [Trust model & prompt injection](#trust-model--prompt-injection)
+- [How the intelligence tools work](#how-the-intelligence-tools-work)
+- [Quick start](#quick-start)
+- [Transports](#transports)
+- [Limits & timeouts](#limits--timeouts)
+- [Troubleshooting & FAQ](#troubleshooting--faq)
+- [Examples](#examples)
+- [Project & community](#project--community)
+- [License](#license)
+- [Trademarks](#trademarks)
 
 ---
 
@@ -37,102 +64,145 @@
 
 Connectivity is handled by the [Zowe SDK](https://github.com/zowe/zowe-cli) (Open Mainframe Project) over z/OSMF REST. This project adds the MCP tool layer, input validation, safety limits, and AI-friendly response formatting on top.
 
+<p align="center">
+  <img src="./docs/assets/demo.gif" alt="Demo: an agent analyzing a failed job and predicting batch failure risk" width="640" />
+</p>
+
 ---
 
 ## How it's different
 
-| | **mainframe-mcp-server** | **Zowe CLI** | **Cloud MCP tools** (K8s, AWS, GitHub…) |
-|---|---|---|---|
-| **Interface** | MCP tools for AI agents | Terminal commands | MCP tools for cloud-native stacks |
-| **z/OS coverage** | Jobs, datasets, USS, diagnostics | Full Zowe command set | None |
-| **Workflow** | Natural-language ops ("why did PAYJOB01 fail?") | Manual CLI scripting | N/A for mainframe |
-| **Output** | Structured text tuned for LLM reasoning | Raw terminal output | N/A |
+| | **mainframe-mcp-server** | **Zowe CLI + scripts** | **Host IDE tooling** (IDz, Z Open Editor) | **Other z/OS MCP bridges** |
+|---|---|---|---|---|
+| **Interface** | MCP tools for AI agents | Terminal commands, shell scripts | Eclipse/VS Code GUIs | MCP tools for AI agents |
+| **Output** | Structured sections & tables tuned for LLM reasoning | Raw terminal text you must parse yourself | IDE views | Varies by project |
+| **Guardrails** | Read-only by default, tool allow/block lists, dataset & USS boundaries, audit logging, JCL size cap | None built in — you script them | Client-side only | Varies by project |
+| **Failure knowledge** | Curated abend-code reference, failing-step heuristics, risk scoring | Manual message lookup | Interactive debugging | Rare |
+| **Install** | `npx` — no server-side footprint beyond z/OSMF access | Node + Zowe CLI + your scripts | Full IDE estate | Often heavier runtimes |
+| **Coverage** | Jobs, datasets, USS, CICS, Db2, SMF/RMF, RACF audit (30+ tools) | Full Zowe command set | Edit, debug, compile | Varies |
 
-This is **not** a replacement for Zowe CLI or IBM Z Open Editor — it is an MCP bridge so AI assistants can drive those same z/OSMF APIs.
+Honest positioning: the z/OS MCP ecosystem is early. IBM and community authors publish their own MCP bridges — evaluate them against your requirements. This project's differentiators are **zero-dependency npm install**, **guardrails enforced at the server layer**, and **output shaped for LLM consumption** rather than human eyes. It is **not** a replacement for Zowe CLI or IBM Z Open Editor — it is an MCP bridge over the same z/OSMF APIs.
+
+---
+
+## z/OS prerequisites
+
+The server is a pure client — nothing is installed on z/OS. It requires REST services that are enabled in standard z/OSMF estates.
+
+### z/OSMF (required — all core tools)
+
+| z/OSMF REST service | Used by | Notes |
+|---|---|---|
+| **Jobs REST** (`/zosmf/restjobs/jobs`) | `list_jobs`, `get_job_status`, `get_job_output`, `get_job_jcl`, `submit_jcl`, all operations & intelligence tools | List, query, spool content, JES submit |
+| **Files REST — datasets** (`/zosmf/restfiles/ds`) | `list_datasets`, `search_dataset`, `read_dataset`, `search_members`, `get_dataset_info` | Catalog list, members, content read |
+| **Files REST — USS** (`/zosmf/restfiles/fs`) | `list_uss_directory`, `read_uss_file`, `search_uss_files`, RACF audit source | Directory list, file read |
+| **z/OSMF info** (`/info`) | `verify_zosmf_connection` | Optional; version read-out only |
+| **RMF REST** (`/rmf/mvs/GPO/`) | `get_smf_metrics` | Optional; disabled with `RMF_METRICS_ENABLED=false` |
+
+**Baseline:** z/OS 2.4 LTS or later with APAR-current z/OSMF — the target the Zowe SDK (v8) is built against. Core job/dataset/USS tools are expected to work on z/OSMF levels from z/OS 2.3 onward; if you run an older or unusual level, [open an issue](https://github.com/NotHarshhaa/mainframe-mcp-server/issues) with your results so the matrix can be updated.
+
+### CICS via CMCI (optional — `list_cics_regions`, `get_cics_region_status`, `list_cics_transactions`)
+
+- CICS TS 5.4 or later with **CMCI** active (a CICSPlex SM WUI region, or a single-region CMCI setup).
+- Set `CMCI_CONTEXT` (CICSplex name or region APPLID); optionally `CMCI_HOST`, `CMCI_PORT` (default `1490`), `CMCI_BASE_PATH` (default `/CICSSystemManagement`).
+- The service account needs RACF/SAF authority to the CMCI data sets (`XCSDATA`/`CICSPLEX` resource classes as configured at your site).
+
+### Db2 REST (optional — `list_db2_subsystems`, `search_db2_catalog`)
+
+- Db2 12 for z/OS or later with the **Db2 REST services** capability exposed at `DB2_HOST`:`DB2_PORT` (default `50400`, base path `/dbrest`) — direct DDF-served REST or fronted by your API mediation layer.
+- Set `DB2_LOCATION` (the subsystem location name). Tools run **read-only catalog SQL** against `SYSIBM.SYSTABLES` with literal-escaped, size-capped input.
+
+### RACF audit source (optional — `query_racf_audit`)
+
+- An existing audit extract the service account can read: a USS log file (`RACF_AUDIT_USS_PATH`) or a sequential dataset (`RACF_AUDIT_DATASET`), e.g. ADUINFOS/IRRADU00 output written to file. The server parses the text; it does not run IRRADU00 for you.
+
+### Service account
+
+Use a dedicated z/OS user with least-privilege RACF profiles (job list/read authority, submit authority only if `SECURITY_READ_ONLY=false`).
 
 ---
 
 ## Tools
 
+**Type legend:** **READ** — reads z/OS state, never modifies anything · **WRITE** — submits work to JES · **OFFLINE** — no mainframe I/O at all.
+
 ### Jobs
 
-| Tool | Description |
-|---|---|
-| `list_jobs` | List jobs by owner, prefix, or status |
-| `get_job_status` | Status and return code for a job |
-| `get_job_output` | Spool inventory or DD content |
-| `submit_jcl` | Submit inline JCL |
-| `analyze_job_failure` | Abend code, failing step, and suggested fix |
-| `get_job_jcl` | Retrieve submitted JCL from job spool |
+| Tool | Type | Description |
+|---|---|---|
+| `list_jobs` | READ | List jobs by owner, prefix, or status |
+| `get_job_status` | READ | Status and return code for a job |
+| `get_job_output` | READ | Spool inventory or DD content |
+| `submit_jcl` | **WRITE** | Submit inline JCL — the only write tool; blocked by read-only mode |
+| `analyze_job_failure` | READ | Abend code, failing step, and suggested fix |
+| `get_job_jcl` | READ | Retrieve submitted JCL from job spool |
 
 ### Datasets
 
-| Tool | Description |
-|---|---|
-| `list_datasets` | List datasets matching an HLQ pattern |
-| `read_dataset` | Read a sequential dataset or PDS member |
-| `search_dataset` | Search datasets by pattern |
-| `search_members` | Search or list PDS members |
-| `get_dataset_info` | Catalog attributes without reading content |
+| Tool | Type | Description |
+|---|---|---|
+| `list_datasets` | READ | List datasets matching an HLQ pattern |
+| `read_dataset` | READ | Read a sequential dataset or PDS member |
+| `search_dataset` | READ | Search datasets by pattern |
+| `search_members` | READ | Search or list PDS members |
+| `get_dataset_info` | READ | Catalog attributes without reading content |
 
 ### USS
 
-| Tool | Description |
-|---|---|
-| `list_uss_directory` | List a USS directory |
-| `read_uss_file` | Read a USS file |
-| `search_uss_files` | Search files under a USS path |
+| Tool | Type | Description |
+|---|---|---|
+| `list_uss_directory` | READ | List a USS directory |
+| `read_uss_file` | READ | Read a USS file |
+| `search_uss_files` | READ | Search files under a USS path |
 
 ### Operations
 
-| Tool | Description |
-|---|---|
-| `find_failed_jobs` | Failed jobs in a time window |
-| `summarize_abends` | Abend code breakdown across recent jobs |
-| `system_health_summary` | Active, queued, and failed job snapshot |
-| `investigate_incident` | Full incident bundle for a job |
-| `lookup_abend_code` | Abend reference lookup (S0C7, S806, S222, S0C4, …) |
-| `verify_zosmf_connection` | Test z/OSMF connectivity and auth |
-| `compare_jobs` | Side-by-side comparison of two jobs |
-| `get_user_jobs_summary` | Job counts by status for an owner |
+| Tool | Type | Description |
+|---|---|---|
+| `find_failed_jobs` | READ | Failed jobs in a time window |
+| `summarize_abends` | READ | Abend code breakdown across recent jobs |
+| `system_health_summary` | READ | Active, queued, and failed job snapshot |
+| `investigate_incident` | READ | Full incident bundle for a job |
+| `lookup_abend_code` | OFFLINE | Abend reference lookup (S0C7, S806, S222, S0C4, …) |
+| `verify_zosmf_connection` | READ | Test z/OSMF connectivity and auth |
+| `compare_jobs` | READ | Side-by-side comparison of two jobs |
+| `get_user_jobs_summary` | READ | Job counts by status for an owner |
 
 ### CICS
 
-| Tool | Description |
-|---|---|
-| `list_cics_regions` | List CICS regions via CMCI REST |
-| `get_cics_region_status` | Status and attributes of a CICS region |
-| `list_cics_transactions` | Transaction definitions in a region |
+Requires optional CMCI configuration — see [z/OS prerequisites](#zos-prerequisites).
 
-Requires optional CMCI REST configuration: `CMCI_CONTEXT` (CICSplex name or region APPLID), plus `CMCI_HOST` / `CMCI_PORT` if CMCI is not fronted by z/OSMF. Tools return `CONFIG_ERROR` with setup guidance when these are missing.
+| Tool | Type | Description |
+|---|---|---|
+| `list_cics_regions` | READ | List CICS regions via CMCI REST |
+| `get_cics_region_status` | READ | Status and attributes of a CICS region |
+| `list_cics_transactions` | READ | Transaction definitions in a region |
 
 ### Db2
 
-| Tool | Description |
-|---|---|
-| `list_db2_subsystems` | List Db2 locations via Db2 REST |
-| `search_db2_catalog` | Search catalog tables and views |
+Requires optional Db2 REST configuration — see [z/OS prerequisites](#zos-prerequisites).
 
-Requires optional Db2 REST configuration: `DB2_LOCATION` (subsystem location name), plus `DB2_HOST` / `DB2_PORT` if the Db2 REST service is not fronted by z/OSMF.
+| Tool | Type | Description |
+|---|---|---|
+| `list_db2_subsystems` | READ | List Db2 locations via Db2 REST |
+| `search_db2_catalog` | READ | Read-only catalog search (tables, views, aliases) |
 
 ### SMF / Security
 
-| Tool | Description |
-|---|---|
-| `get_smf_metrics` | SMF/RMF performance metrics snapshot |
-| `query_racf_audit` | Query RACF audit records from a log source |
-| `security_posture_summary` | Report active security controls and recommendations |
-
-Optional configuration: SMF metrics are read from z/OSMF RMF (`RMF_METRICS_ENABLED`, default `true`) and/or `SMF_SUMMARY_DATASET`; RACF audit records are parsed from `RACF_AUDIT_USS_PATH` or `RACF_AUDIT_DATASET`. `security_posture_summary` always works and reports which controls are active.
+| Tool | Type | Description |
+|---|---|---|
+| `get_smf_metrics` | READ | SMF/RMF performance metrics snapshot |
+| `query_racf_audit` | READ | Query RACF audit records from a log source |
+| `security_posture_summary` | OFFLINE | Report active security controls and recommendations |
 
 ### Intelligence
 
-| Tool | Description |
-|---|---|
-| `analyze_root_cause` | Deep root-cause analysis with correlation and action items |
-| `predict_batch_failures` | Predictive risk scoring for recurring batch failures |
+Built in — see [How the intelligence tools work](#how-the-intelligence-tools-work).
 
-Built in — no external AI API is called; the agent interprets the report. Correlation and risk scoring run against the failures currently visible in the JES output queue.
+| Tool | Type | Description |
+|---|---|---|
+| `analyze_root_cause` | READ | Deep root-cause analysis with correlation and action items |
+| `predict_batch_failures` | READ | Predictive risk scoring for recurring batch failures |
 
 See [docs/tools-reference.md](./docs/tools-reference.md) for full input/output details.
 
@@ -144,14 +214,14 @@ Security is enforced at the **MCP server layer**, in addition to RACF/z/OSMF per
 
 | Control | Env variable | Purpose |
 |---|---|---|
-| Read-only mode | `SECURITY_READ_ONLY=true` | Blocks `submit_jcl` and other write tools |
+| Read-only mode | `SECURITY_READ_ONLY` | **Default `true`**: `submit_jcl` and write operations are blocked unless you explicitly opt in |
 | Tool allowlist | `SECURITY_ALLOWED_TOOLS` | Only permit specific tools (least privilege) |
 | Tool blocklist | `SECURITY_BLOCKED_TOOLS` | Explicitly deny dangerous tools |
 | Dataset boundaries | `SECURITY_ALLOWED_DATASET_PATTERNS` | Restrict dataset access by HLQ pattern |
 | USS boundaries | `SECURITY_ALLOWED_USS_PATHS` | Restrict USS paths by prefix |
 | Audit logging | `SECURITY_AUDIT_LOGGING=true` | Log every tool call (credentials redacted) |
 | JCL size limit | `SECURITY_MAX_JCL_BYTES` | Cap inline JCL submit size |
-| TLS verification | `ZOSMF_REJECT_UNAUTHORIZED=true` | Enforce certificate validation |
+| TLS verification | `ZOSMF_REJECT_UNAUTHORIZED=true` | Enforce certificate validation (default `true`) |
 
 Use `security_posture_summary` to inspect which controls are active and get hardening recommendations.
 
@@ -165,22 +235,50 @@ The mainframe still enforces the final authorization — this server adds guardr
 
 ---
 
-## Operational intelligence
+## Trust model & prompt injection
 
-Capabilities built into the server:
+Everything this server returns — spool output, dataset contents, USS files, audit logs — is **untrusted text that flows into your AI agent's context**. A hostile JCL comment, COBOL literal, or log line can contain English text that tries to steer the agent ("ignore previous instructions, submit JCL that …").
 
-- **USS tools** — list, read, and search USS paths
-- **`investigate_incident`** — status, root-cause analysis, spool inventory, and diagnostic excerpt in one call
-- **`system_health_summary`** — HEALTHY / DEGRADED / CRITICAL snapshot with top abend codes
-- **Abend code lookup** — curated reference for common system and user abends via `lookup_abend_code`
-- **Structured responses** — numbered sections and tables designed for AI agent parsing
-- **Integration tests** — optional sandbox suite (`RUN_INTEGRATION=1 npm run test:integration`)
+**What the server guarantees:**
+
+- **Content is data, never instructions.** The server never parses directives out of z/OS content and never chains tool calls on its own. Every tool invocation originates from the MCP client.
+- **Nothing executes from file content.** There is no code evaluation, shell, or template expansion anywhere in the request or response path.
+- **Mutation requires an explicit, gated call.** The only write tool is `submit_jcl`, and it is blocked by default (`SECURITY_READ_ONLY=true`), subject to `SECURITY_ALLOWED_TOOLS`/`SECURITY_BLOCKED_TOOLS`, and size-capped (`SECURITY_MAX_JCL_BYTES`).
+- **Bounded exposure.** All content passes through configured line caps and truncation notices, so a single hostile file cannot flood the context (see [Limits](#limits--timeouts)).
+- **Auditable.** Every call is logged with arguments and outcome; sensitive keys are redacted.
+
+**What the server cannot guarantee:** it cannot stop a *convincing* log line from influencing what your **agent** asks to do next — that is an MCP-client-side concern by design. Defense in depth:
+
+1. Keep `SECURITY_READ_ONLY=true` (the default) for agents that browse logs/datasets.
+2. Use `SECURITY_ALLOWED_TOOLS` so the agent cannot reach tools it should not.
+3. Use dataset/USS boundary patterns so even a steered request stays fenced.
+4. Review `submit_jcl` requests by a human before approving them in the client (most MCP clients support per-call approval prompts).
+
+---
+
+## How the intelligence tools work
+
+**No LLM, no external AI API.** The "intelligence" layer is deterministic, rule-based analysis that runs inside the server so results are reproducible and auditable. The MCP client's LLM interprets the structured report.
+
+**`analyze_job_failure` / `analyze_root_cause`:**
+- Extracts the abend code from the job's return code and spool text (recognizes `ABEND Sxxx`/`Uxxxx`, system/user completion codes, bare tokens), then matches it against a **curated reference table** of common z/OS abend codes (S0C1, S0C4, S0C7, S806, S322, S222, U4038, …) with explanations and remediations.
+- Identifies the failing/cancelled step and program from JES message patterns (IEF450I, IEF142I, IEF473I, CSV0nnnI, module-not-found).
+- Correlates the failure with other failed jobs currently visible in the JES output queue within the look-back window (`lookbackHours`, default 72, max 720).
+- **Confidence** means exactly: `HIGH` = abend code + failing step + spool evidence all found; `MEDIUM` = abend code or failing step found; `LOW` = neither — treat the report as a starting point.
+- **Health score** (0–100) = 100 − 8 × similar incidents (max −40) − 5 × correlated abend types (max −30), with a confidence-based floor. It is a trend indicator, not an SLA metric.
+
+**`predict_batch_failures`:**
+- Groups recent failed jobs by job name and scores each with a **recency-weighted count**: every failure contributes 3 if it happened in the newest quarter of the window, 2 in the newest half, 1 otherwise; +10 when a known abend code is involved; scaled and capped at 100.
+- Risk levels: `CRITICAL ≥ 75`, `HIGH ≥ 50`, `MEDIUM ≥ 25`, else `LOW`.
+- **Trend** compares failure counts in the newest vs oldest third of the window (INCREASING / STABLE / DECREASING).
+
+**Known limitation (important for reviewers):** JES only exposes jobs still in the system. "History" means *failures currently listed in the OUTPUT queue* (capped at `MAX_FAILED_JOB_RESULTS`), not a query of SMF archives. For long-horizon analytics, feed SMF data into a real analytics platform — this tool answers "what is failing *right now*, repeatedly?"
 
 ---
 
 ## Quick start
 
-**Requirements:** Node.js 18+, a reachable z/OSMF endpoint, and valid z/OS credentials.
+**Requirements:** Node.js 18+, a reachable z/OSMF endpoint, and valid z/OS credentials (see [z/OS prerequisites](#zos-prerequisites)).
 
 ### Install via npm
 
@@ -240,6 +338,17 @@ Point your IDE at `dist/index.js` and set `env` in MCP config (copy from
 
 Full configuration reference: [docs/configuration.md](./docs/configuration.md)
 
+### Tested clients
+
+Any MCP client that launches **stdio** servers works. Known-good setups:
+
+| Client | Config location |
+|---|---|
+| Claude Desktop | `claude_desktop_config.json` → `mcpServers` |
+| Cursor | `~/.cursor/mcp.json` (or project `.cursor/mcp.json`) |
+| VS Code (Copilot / MCP) | user or workspace MCP settings |
+| Claude Code / other CLIs | standard `mcpServers` block |
+
 ---
 
 ## Transports
@@ -255,6 +364,58 @@ Two MCP transports are supported, selected with `MCP_TRANSPORT`:
 > Streamable HTTP, and this server still implements the legacy HTTP+SSE transport.
 > Clients that only speak Streamable HTTP should launch the server over stdio (or front
 > it with a transport shim). See [docs/deployment.md](./docs/deployment.md).
+
+---
+
+## Limits & timeouts
+
+Output is **truncated, never paginated** — every cap emits an explicit `[truncated N of M lines]` notice plus guidance to narrow filters.
+
+| Limit | Env variable | Default | Applies to |
+|---|---|---|---|
+| Spool DD lines | `MAX_JOB_OUTPUT_LINES` | 5000 | One spool DD (`get_job_output`, JCL) |
+| File lines | `MAX_DATASET_READ_LINES` | 2000 | One dataset / PDS member / USS file read |
+| Diagnostic DDs | `MAX_JES_SPOOL_FILES` | 20 | Spool files fetched per failure analysis |
+| Audit lines | `MAX_AUDIT_LINES` | 500 | RACF audit text parsed per query |
+| Job list results | `MAX_JOB_LIST_RESULTS` | 500 | `list_jobs` before agent-side filters |
+| Failed-job results | `MAX_FAILED_JOB_RESULTS` | 100 | `find_failed_jobs`, intelligence correlation |
+| JCL payload | `SECURITY_MAX_JCL_BYTES` | 65536 | `submit_jcl` input size |
+
+**Timeouts & concurrency:**
+
+- `submit_jcl wait=true` polls JES every 2 s for up to `timeout` seconds (default 30, max 300).
+- REST calls use the Zowe SDK / Node defaults — there is no client-side retry loop; transient failures surface as `[CONNECTION_ERROR]` results the agent can retry.
+- One shared z/OSMF session; requests are executed as the MCP client dispatches them, with no client-side rate limiter. z/OSMF's own server-side concurrency limits apply — heavy parallel tool use should be throttled by the client or the gateway.
+
+---
+
+## Troubleshooting & FAQ
+
+All tool errors come back as `[ERROR_CODE]: message` — codes are stable and listed in [docs/tools-reference.md](./docs/tools-reference.md).
+
+**`[CONNECTION_ERROR]` — z/OSMF authentication failed (401/403)**
+Credentials rejected by z/OSMF. Check: user/password or token validity; `ZOSMF_TOKEN_TYPE` matches how the token was issued (`LTPA2` vs JWT); the account is not revoked. An **expired TSO password** also surfaces here — log on via TSO once to reset it, then retry.
+
+**`[CONNECTION_ERROR]` — certificate / TLS errors**
+Self-signed or private-CA z/OSMF certificate. Preferred fix: trust the CA chain, e.g. `NODE_EXTRA_CA_CERTS=/path/to/ca.pem`. For throwaway dev only: `ZOSMF_REJECT_UNAUTHORIZED=false` (logs a warning; never in production).
+
+**`[CONNECTION_ERROR]` — unable to reach z/OSMF (ENOTFOUND / ECONNREFUSED / ETIMEDOUT)**
+Host/port wrong, VPN not connected, or you are behind an API mediation layer — set `ZOSMF_BASE_PATH` to your gateway prefix.
+
+**`[CONFIG_ERROR]` — CICS/Db2/RACF tools refuse to run**
+Those tools need optional setup: `CMCI_CONTEXT`, `DB2_LOCATION`, or `RACF_AUDIT_USS_PATH`/`RACF_AUDIT_DATASET`. See [z/OS prerequisites](#zos-prerequisites). The error message names the exact variable.
+
+**`[NOT_FOUND]` — job/dataset not found**
+Job ids are JES-qualified (`JOB01234`, `STC00012`, `TSU00123`) and jobs vanish when purged from the OUTPUT queue. For datasets, check the HLQ and that the name is cataloged (migrated/HSM datasets may still resolve but show `MIGRATED`).
+
+**`[FORBIDDEN]` — tool blocked**
+Read-only mode (the default) blocks `submit_jcl`; an allowlist/blocklist rule matched. Set `SECURITY_READ_ONLY=false` and/or adjust `SECURITY_ALLOWED_TOOLS`/`SECURITY_BLOCKED_TOOLS` — deliberately an operator decision, not the agent's.
+
+**The client doesn't show any tools**
+Check stderr for the startup log (`mainframe-mcp-server connected over stdio`). Invalid config aborts with a variable-by-variable message. Set `LOG_LEVEL=debug` for per-call tracing. Requires Node 18+.
+
+**HTTP+SSE returns `400 Unknown or missing sessionId`**
+The SSE session was restarted; reconnect `GET /sse` and use the fresh `sessionId`.
 
 ---
 
@@ -305,12 +466,15 @@ Agent: predict_batch_failures({ hours: 168 })
 
 ---
 
-## Documentation
+## Project & community
 
 - **[Website (GitHub Pages)](https://notharshhaa.github.io/mainframe-mcp-server/)** — overview, tools, setup, enterprise guide
 - [Configuration](./docs/configuration.md) — all environment variables
 - [Tools reference](./docs/tools-reference.md) — inputs, outputs, and error codes
 - [Deployment](./docs/deployment.md) — transports (stdio, HTTP+SSE), Docker, systemd
+- [Contributing](./CONTRIBUTING.md) — workflow, project layout, how to add a tool
+- [Security policy](./SECURITY.md) — supported versions and how to report vulnerabilities
+- [Changelog](./CHANGELOG.md) — release history
 
 ---
 

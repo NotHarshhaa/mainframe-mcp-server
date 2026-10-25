@@ -207,7 +207,7 @@
         },
         {
           "name": "SECURITY_READ_ONLY",
-          "description": "When true, blocks write tools such as submit_jcl",
+          "description": "When true (default), blocks write tools such as submit_jcl",
           "isRequired": false,
           "format": "boolean",
           "isSecret": false

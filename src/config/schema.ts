@@ -61,7 +61,8 @@ export const configSchema = z
       racfAuditDataset: z.string().optional(),
     }),
     security: z.object({
-      readOnly: booleanFromEnv.default(false),
+      // Safe default: write tools are blocked unless explicitly enabled.
+      readOnly: booleanFromEnv.default(true),
       allowedTools: z.string().optional(),
       blockedTools: z.string().optional(),
       allowedDatasetPatterns: z.string().optional(),

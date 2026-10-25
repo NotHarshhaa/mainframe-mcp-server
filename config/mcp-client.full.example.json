@@ -29,7 +29,7 @@
         "RMF_METRICS_ENABLED": "true",
         "RACF_AUDIT_USS_PATH": "",
         "RACF_AUDIT_DATASET": "",
-        "SECURITY_READ_ONLY": "false",
+        "SECURITY_READ_ONLY": "true",
         "SECURITY_ALLOWED_TOOLS": "",
         "SECURITY_BLOCKED_TOOLS": "",
         "SECURITY_ALLOWED_DATASET_PATTERNS": "",

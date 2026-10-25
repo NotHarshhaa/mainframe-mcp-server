@@ -134,7 +134,7 @@ All enterprise variables are optional. Tools return `CONFIG_ERROR` with setup gu
 
 | Variable | Default | Description |
 |---|---|---|
-| `SECURITY_READ_ONLY` | `false` | When `true`, blocks write tools like `submit_jcl`. |
+| `SECURITY_READ_ONLY` | `true` | When `true`, blocks write tools like `submit_jcl`. Safe by default — set `false` only when the agent is trusted to submit jobs. |
 | `SECURITY_ALLOWED_TOOLS` | — | Comma-separated allowlist of MCP tool names. |
 | `SECURITY_BLOCKED_TOOLS` | — | Comma-separated blocklist of MCP tool names. |
 | `SECURITY_ALLOWED_DATASET_PATTERNS` | — | Comma-separated dataset patterns (e.g. `USERDEV.*,SYS1.*`). |

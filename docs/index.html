@@ -333,7 +333,7 @@
         "ZOSMF_TOKEN": "your-zosmf-token",
         "ZOSMF_TOKEN_TYPE": "LTPA2",
         "ZOSMF_REJECT_UNAUTHORIZED": "true",
-        "SECURITY_READ_ONLY": "false",
+        "SECURITY_READ_ONLY": "true",
         "SECURITY_AUDIT_LOGGING": "true"
       }
     }
@@ -412,7 +412,7 @@ npm test          # unit tests, no mainframe required</pre>
             <tr><th>Control</th><th>Variable</th><th>Purpose</th></tr>
           </thead>
           <tbody>
-            <tr><td>Read-only mode</td><td><code>SECURITY_READ_ONLY=true</code></td><td>Blocks <code>submit_jcl</code> and write tools</td></tr>
+            <tr><td>Read-only mode</td><td><code>SECURITY_READ_ONLY=true</code></td><td>Blocks <code>submit_jcl</code> and write tools (default <code>true</code>)</td></tr>
             <tr><td>Tool allowlist</td><td><code>SECURITY_ALLOWED_TOOLS</code></td><td>Least-privilege tool access</td></tr>
             <tr><td>Tool blocklist</td><td><code>SECURITY_BLOCKED_TOOLS</code></td><td>Explicitly deny tools</td></tr>
             <tr><td>Dataset boundaries</td><td><code>SECURITY_ALLOWED_DATASET_PATTERNS</code></td><td>Restrict HLQ patterns</td></tr>
