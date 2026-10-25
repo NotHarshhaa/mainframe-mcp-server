@@ -73,13 +73,17 @@ jobs:
 
       - name: Pack the published tarball for the release
         run: |
-          npm pack --pack-destination "$RUNNER_TEMP"
-          mv "$RUNNER_TEMP"/*.tgz "$RUNNER_TEMP/package.tgz"
+          # Pack into the workspace so every release asset lives at one root —
+          # upload-artifact preserves directory structure, and mixed roots
+          # (runner.temp + workspace) would nest files inside the artifact.
+          npm pack --pack-destination .
+          TGZ=$(ls notharshhaa-mainframe-mcp-server-*.tgz)
+          mv "$TGZ" package.tgz
 
       - name: SBOM of the npm package (SPDX)
         uses: anchore/sbom-action@v0
         with:
-          artifact: ${{ runner.temp }}/package.tgz
+          artifact: package.tgz
           format: spdx-json
           output-file: package-sbom.spdx.json
           upload-artifact: false
@@ -87,7 +91,7 @@ jobs:
       - name: SBOM of the npm package (CycloneDX)
         uses: anchore/sbom-action@v0
         with:
-          artifact: ${{ runner.temp }}/package.tgz
+          artifact: package.tgz
           format: cyclonedx-json
           output-file: package-sbom.cdx.json
           upload-artifact: false
@@ -97,7 +101,7 @@ jobs:
         with:
           name: npm-release-assets
           path: |
-            ${{ runner.temp }}/package.tgz
+            package.tgz
             package-sbom.spdx.json
             package-sbom.cdx.json
           if-no-files-found: error
@@ -301,6 +305,7 @@ jobs:
       - name: Generate checksums and sign them
         working-directory: assets
         run: |
+          ls -la
           sha256sum package.tgz package-sbom.spdx.json package-sbom.cdx.json \
             image-sbom.spdx.json image-sbom.cdx.json > sha256sums.txt
           cosign sign-blob --yes --output-signature sha256sums.txt.sig sha256sums.txt
