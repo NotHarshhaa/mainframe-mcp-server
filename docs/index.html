@@ -78,7 +78,7 @@
     <p class="hero-lead">
       An enterprise-grade Model Context Protocol server that exposes jobs, datasets, USS,
       CICS, Db2, and operational diagnostics to Cursor, VS Code, and other MCP clients —
-      over z/OSMF REST via the IBM Zowe SDK.
+      over z/OSMF REST via the Zowe SDK (Open Mainframe Project).
     </p>
     <img class="hero-banner" src="assets/banner.png" alt="Bridge AI agents with IBM z/OS via MCP and Zowe SDK" width="900" height="auto">
     <div class="hero-actions">
@@ -181,19 +181,19 @@
 
     <section id="features">
       <h2>Features</h2>
-      <p class="section-intro">Built in phases for operational intelligence, enterprise platforms, and security controls.</p>
+      <p class="section-intro">Organized into core tooling, operational intelligence, optional enterprise integrations, and security controls.</p>
       <div class="card-grid">
         <div class="card">
-          <h3>Core (Phase 1)</h3>
+          <h3>Core</h3>
           <p>Job listing, status, spool output, JCL submit, dataset &amp; PDS read/search, failure analysis, safety limits on response size.</p>
         </div>
         <div class="card">
-          <h3>Operations (Phase 2)</h3>
+          <h3>Operational intelligence</h3>
           <p>USS tools, <code>investigate_incident</code>, <code>system_health_summary</code>, abend lookup, structured AI-friendly responses, integration test suite.</p>
         </div>
         <div class="card">
-          <h3>Enterprise (Phase 3)</h3>
-          <p>CICS CMCI, Db2 REST catalog, SMF/RMF metrics, RACF audit queries, root-cause analysis, predictive batch failure scoring.</p>
+          <h3>Optional enterprise integrations</h3>
+          <p>CICS CMCI, Db2 REST catalog, SMF/RMF metrics, RACF audit queries — enabled through configuration when your environment provides them.</p>
         </div>
         <div class="card">
           <h3>Security layer</h3>
@@ -296,7 +296,7 @@
         </li>
       </ol>
 
-      <div class="code-label">MCP config (stdio · npm)</div>
+      <div class="code-label">MCP config (stdio · npm · token auth)</div>
       <div class="code-block">
 <pre>{
   "mcpServers": {
@@ -306,8 +306,8 @@
       "env": {
         "ZOSMF_HOST": "your-zosmf-host.internal",
         "ZOSMF_PORT": "443",
-        "ZOSMF_USER": "your-username",
-        "ZOSMF_PASSWORD": "your-password",
+        "ZOSMF_TOKEN": "your-zosmf-token",
+        "ZOSMF_TOKEN_TYPE": "LTPA2",
         "ZOSMF_REJECT_UNAUTHORIZED": "true",
         "SECURITY_READ_ONLY": "false",
         "SECURITY_AUDIT_LOGGING": "true"
@@ -338,8 +338,8 @@ npm test          # unit tests, no mainframe required</pre>
       "env": {
         "ZOSMF_HOST": "your-zosmf-host.internal",
         "ZOSMF_PORT": "443",
-        "ZOSMF_USER": "your-username",
-        "ZOSMF_PASSWORD": "your-password"
+        "ZOSMF_TOKEN": "your-zosmf-token",
+        "ZOSMF_TOKEN_TYPE": "LTPA2"
       }
     }
   }
@@ -360,8 +360,8 @@ npm test          # unit tests, no mainframe required</pre>
           </thead>
           <tbody>
             <tr><td><code>ZOSMF_HOST</code></td><td>Yes</td><td>z/OSMF hostname or IP</td></tr>
-            <tr><td><code>ZOSMF_USER</code> / <code>ZOSMF_PASSWORD</code></td><td>Yes*</td><td>Basic auth credentials</td></tr>
-            <tr><td><code>ZOSMF_TOKEN</code></td><td>Yes*</td><td>Token auth (alternative to password)</td></tr>
+            <tr><td><code>ZOSMF_TOKEN</code></td><td>Yes*</td><td>Token auth — recommended over basic credentials</td></tr>
+            <tr><td><code>ZOSMF_USER</code> / <code>ZOSMF_PASSWORD</code></td><td>Yes*</td><td>Basic auth — alternative to token auth</td></tr>
             <tr><td><code>ZOSMF_PORT</code></td><td>No</td><td>HTTPS port (default <code>443</code>)</td></tr>
             <tr><td><code>ZOSMF_BASE_PATH</code></td><td>No</td><td>API gateway prefix if applicable</td></tr>
             <tr><td><code>ZOSMF_REJECT_UNAUTHORIZED</code></td><td>No</td><td>TLS verification (default <code>true</code>)</td></tr>
@@ -445,6 +445,7 @@ Fix:     Verify PAYRPTX is compiled and linked into the correct load library.</p
       <a href="https://github.com/zowe/zowe-cli">Zowe</a>
     </div>
     <p>MIT License · <code>@notharshhaa/mainframe-mcp-server</code> · v2.5.0</p>
+    <p class="footer-note">Not affiliated with IBM or the Open Mainframe Project. IBM, z/OS, CICS, Db2 and RACF are trademarks of IBM.</p>
   </footer>
   <script src="assets/theme.js"></script>
   <script src="assets/nav.js"></script>

@@ -698,6 +698,12 @@ td:first-child {
   margin-bottom: 0.75rem;
 }
 
+.footer-note {
+  margin-top: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 /* ---- Mobile & tablet ---- */
 @media (max-width: 900px) {
   .nav-menu-toggle {

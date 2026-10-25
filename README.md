@@ -23,7 +23,7 @@
 </p>
 
 > **An enterprise-grade Model Context Protocol (MCP) server for IBM z/OS environments.**  
-> Bridges MCP-compatible AI agents with mainframe resources — jobs, datasets, USS, and operational diagnostics — using IBM Zowe SDK as the connectivity layer.
+> Bridges MCP-compatible AI agents with mainframe resources — jobs, datasets, USS, and operational diagnostics — using the Zowe SDK (Open Mainframe Project) as the connectivity layer.
 
 <p align="center">
   <img src="./public/banner.png" alt="mainframe-mcp-server — Bridge AI agents with IBM z/OS via MCP and Zowe SDK" width="100%" />
@@ -35,7 +35,7 @@
 
 `mainframe-mcp-server` exposes z/OS capabilities as [Model Context Protocol](https://modelcontextprotocol.io/) tools. An AI agent can list jobs, read datasets, inspect USS paths, submit JCL, and run operational diagnostics — without you writing Zowe CLI commands by hand.
 
-Connectivity is handled by the [IBM Zowe SDK](https://github.com/zowe/zowe-cli) over z/OSMF REST. This project adds the MCP tool layer, input validation, safety limits, and AI-friendly response formatting on top.
+Connectivity is handled by the [Zowe SDK](https://github.com/zowe/zowe-cli) (Open Mainframe Project) over z/OSMF REST. This project adds the MCP tool layer, input validation, safety limits, and AI-friendly response formatting on top.
 
 ---
 
@@ -104,12 +104,16 @@ This is **not** a replacement for Zowe CLI or IBM Z Open Editor — it is an MCP
 | `get_cics_region_status` | Status and attributes of a CICS region |
 | `list_cics_transactions` | Transaction definitions in a region |
 
+Requires optional CMCI REST configuration: `CMCI_CONTEXT` (CICSplex name or region APPLID), plus `CMCI_HOST` / `CMCI_PORT` if CMCI is not fronted by z/OSMF. Tools return `CONFIG_ERROR` with setup guidance when these are missing.
+
 ### Db2
 
 | Tool | Description |
 |---|---|
 | `list_db2_subsystems` | List Db2 locations via Db2 REST |
 | `search_db2_catalog` | Search catalog tables and views |
+
+Requires optional Db2 REST configuration: `DB2_LOCATION` (subsystem location name), plus `DB2_HOST` / `DB2_PORT` if the Db2 REST service is not fronted by z/OSMF.
 
 ### SMF / Security
 
@@ -119,6 +123,8 @@ This is **not** a replacement for Zowe CLI or IBM Z Open Editor — it is an MCP
 | `query_racf_audit` | Query RACF audit records from a log source |
 | `security_posture_summary` | Report active security controls and recommendations |
 
+Optional configuration: SMF metrics are read from z/OSMF RMF (`RMF_METRICS_ENABLED`, default `true`) and/or `SMF_SUMMARY_DATASET`; RACF audit records are parsed from `RACF_AUDIT_USS_PATH` or `RACF_AUDIT_DATASET`. `security_posture_summary` always works and reports which controls are active.
+
 ### Intelligence
 
 | Tool | Description |
@@ -126,13 +132,15 @@ This is **not** a replacement for Zowe CLI or IBM Z Open Editor — it is an MCP
 | `analyze_root_cause` | Deep root-cause analysis with correlation and action items |
 | `predict_batch_failures` | Predictive risk scoring for recurring batch failures |
 
+Built in — no external AI API is called; the agent interprets the report. Correlation and risk scoring run against the failures currently visible in the JES output queue.
+
 See [docs/tools-reference.md](./docs/tools-reference.md) for full input/output details.
 
 ---
 
 ## Enterprise security
 
-Yes — this server is designed for enterprise use, with controls big companies typically require. Security is enforced at the **MCP server layer** (in addition to RACF/z/OSMF permissions on the mainframe itself).
+Security is enforced at the **MCP server layer**, in addition to RACF/z/OSMF permissions on the mainframe itself. Every control below is enabled through environment variables:
 
 | Control | Env variable | Purpose |
 |---|---|---|
@@ -151,26 +159,15 @@ Use `security_posture_summary` to inspect which controls are active and get hard
 - A dedicated **service account** on z/OS with least-privilege RACF profiles
 - **Secrets** in a vault (not plain env vars in production)
 - **Network** restrictions (z/OSMF behind API gateway / VPN)
-- **SSE transport** placed behind auth proxy if exposed beyond localhost
+- **HTTP+SSE transport** placed behind an auth proxy if exposed beyond localhost
 
 The mainframe still enforces the final authorization — this server adds guardrails so AI agents cannot exceed configured boundaries.
 
 ---
 
-Phase 3 capabilities (require optional enterprise configuration):
-
-- **CICS region tools** — CMCI REST integration (`CMCI_CONTEXT`, `CMCI_HOST`, `CMCI_PORT`)
-- **Db2 catalog tools** — Db2 REST SQL queries (`DB2_LOCATION`, `DB2_HOST`, `DB2_PORT`)
-- **SMF metrics exposure** — z/OSMF RMF and/or `SMF_SUMMARY_DATASET`
-- **RACF audit integration** — parse audit logs from `RACF_AUDIT_USS_PATH` or `RACF_AUDIT_DATASET`
-- **AI-assisted root cause analysis** — `analyze_root_cause` with confidence scoring and correlated incidents
-- **Predictive batch failure detection** — `predict_batch_failures` with risk levels and trends
-
----
-
 ## Operational intelligence
 
-Phase 2 capabilities built into the server:
+Capabilities built into the server:
 
 - **USS tools** — list, read, and search USS paths
 - **`investigate_incident`** — status, root-cause analysis, spool inventory, and diagnostic excerpt in one call
@@ -195,7 +192,7 @@ When you add this server in your IDE (Cursor, VS Code, Claude Desktop, etc.), th
 installer prompts for connection settings (driven by `server.json`). Those values
 are stored in your MCP config file — not in a `.env` file.
 
-Example MCP config (see also [config/mcp-client.example.json](./config/mcp-client.example.json)):
+Example MCP config — token auth, the recommended setup. Source the token from your vault or the IDE's secret storage rather than hardcoding it (see also [config/mcp-client.example.json](./config/mcp-client.example.json)):
 
 ```json
 {
@@ -206,13 +203,15 @@ Example MCP config (see also [config/mcp-client.example.json](./config/mcp-clien
       "env": {
         "ZOSMF_HOST": "your-zosmf-host.internal",
         "ZOSMF_PORT": "443",
-        "ZOSMF_USER": "your-username",
-        "ZOSMF_PASSWORD": "your-password"
+        "ZOSMF_TOKEN": "your-zosmf-token",
+        "ZOSMF_TOKEN_TYPE": "LTPA2"
       }
     }
   }
 }
 ```
+
+Basic auth (`ZOSMF_USER` + `ZOSMF_PASSWORD`) is also supported — if you use it, inject the values from a vault or secret manager instead of pasting them into the config file.
 
 ### Run from source
 
@@ -231,14 +230,31 @@ Point your IDE at `dist/index.js` and set `env` in MCP config (copy from
 | Variable | Required | Description |
 |---|---|---|
 | `ZOSMF_HOST` | yes | z/OSMF hostname |
-| `ZOSMF_USER` / `ZOSMF_PASSWORD` | yes* | Basic auth credentials |
-| `ZOSMF_TOKEN` | yes* | Token auth (alternative to user/password) |
+| `ZOSMF_TOKEN` | yes* | Token auth — recommended over basic credentials |
+| `ZOSMF_TOKEN_TYPE` | no | Token type (default `LTPA2`) |
+| `ZOSMF_USER` / `ZOSMF_PASSWORD` | yes* | Basic auth — alternative to token auth |
 | `ZOSMF_PORT` | no | HTTPS port (default `443`) |
 | `ZOSMF_REJECT_UNAUTHORIZED` | no | TLS verification (default `true`) |
 
-\* Provide either user/password **or** a token.
+\* Provide either a token **or** user/password.
 
 Full configuration reference: [docs/configuration.md](./docs/configuration.md)
+
+---
+
+## Transports
+
+Two MCP transports are supported, selected with `MCP_TRANSPORT`:
+
+| Transport | How to enable | Use when |
+|---|---|---|
+| **stdio** (default) | Omit `MCP_TRANSPORT` | IDE / desktop MCP clients (Cursor, VS Code, Claude Desktop). Logs go to stderr only. |
+| **HTTP+SSE** | `MCP_TRANSPORT=sse` | Containerized or shared deployments. Endpoints: `GET /sse` (open stream), `POST /messages?sessionId=…`, `GET /health`. Place it behind an auth proxy if exposed beyond localhost. |
+
+> **Streamable HTTP is not supported yet.** The MCP spec has moved from HTTP+SSE to
+> Streamable HTTP, and this server still implements the legacy HTTP+SSE transport.
+> Clients that only speak Streamable HTTP should launch the server over stdio (or front
+> it with a transport shim). See [docs/deployment.md](./docs/deployment.md).
 
 ---
 
@@ -294,10 +310,16 @@ Agent: predict_batch_failures({ hours: 168 })
 - **[Website (GitHub Pages)](https://notharshhaa.github.io/mainframe-mcp-server/)** — overview, tools, setup, enterprise guide
 - [Configuration](./docs/configuration.md) — all environment variables
 - [Tools reference](./docs/tools-reference.md) — inputs, outputs, and error codes
-- [Deployment](./docs/deployment.md) — stdio vs SSE transport
+- [Deployment](./docs/deployment.md) — transports (stdio, HTTP+SSE), Docker, systemd
 
 ---
 
 ## License
 
 MIT — see [LICENSE](./LICENSE)
+
+---
+
+## Trademarks
+
+Not affiliated with IBM or the Open Mainframe Project. IBM, z/OS, CICS, Db2 and RACF are trademarks of IBM.

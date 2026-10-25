@@ -81,7 +81,7 @@
         },
         {
           "name": "MCP_TRANSPORT",
-          "description": "Transport: stdio (IDE) or sse (container/network)",
+          "description": "Transport: stdio (IDE) or sse (legacy HTTP+SSE for container/network deployments)",
           "isRequired": false,
           "format": "string",
           "isSecret": false

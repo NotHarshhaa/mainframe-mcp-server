@@ -1,7 +1,15 @@
 # Deployment
 
 `mainframe-mcp-server` supports two transports: **stdio** (default, ideal for
-desktop MCP clients) and **SSE** (for networked / containerized deployments).
+desktop MCP clients) and **HTTP+SSE** (for networked / containerized deployments).
+
+> Note: HTTP+SSE is the legacy MCP network transport. The MCP spec has moved to
+> Streamable HTTP, which this server does not implement yet — clients that only
+> speak Streamable HTTP should launch the server over stdio.
+
+The examples below show token auth (`ZOSMF_TOKEN`). Basic auth
+(`ZOSMF_USER` / `ZOSMF_PASSWORD`) works the same way; source either from a
+vault or secrets manager in production.
 
 ---
 
@@ -19,8 +27,8 @@ server via `npx` and communicates over stdin/stdout.
       "env": {
         "ZOSMF_HOST": "your-zosmf-host.internal",
         "ZOSMF_PORT": "443",
-        "ZOSMF_USER": "your-username",
-        "ZOSMF_PASSWORD": "your-password"
+        "ZOSMF_TOKEN": "your-zosmf-token",
+        "ZOSMF_TOKEN_TYPE": "LTPA2"
       }
     }
   }
@@ -49,8 +57,8 @@ the IDE or `npm start` with the same variables exported in your shell.
       "env": {
         "ZOSMF_HOST": "your-zosmf-host.internal",
         "ZOSMF_PORT": "443",
-        "ZOSMF_USER": "your-username",
-        "ZOSMF_PASSWORD": "your-password"
+        "ZOSMF_TOKEN": "your-zosmf-token",
+        "ZOSMF_TOKEN_TYPE": "LTPA2"
       }
     }
   }
@@ -62,10 +70,10 @@ the IDE or `npm start` with the same variables exported in your shell.
 
 ---
 
-## Option 3 — Container (SSE)
+## Option 3 — Container (HTTP+SSE)
 
 For shared/internal deployments, run the server as a long-lived process exposing
-the SSE transport.
+the HTTP+SSE transport.
 
 ### Build & run with Docker
 
@@ -73,7 +81,7 @@ the SSE transport.
 docker build -t mainframe-mcp-server .
 docker run --rm -p 3000:3000 \
   -e ZOSMF_HOST=your-zosmf-host.internal \
-  -e ZOSMF_USER=your-user -e ZOSMF_PASSWORD=your-password \
+  -e ZOSMF_TOKEN=your-zosmf-token \
   -e MCP_TRANSPORT=sse -e MCP_SSE_PORT=3000 \
   mainframe-mcp-server
 ```
@@ -82,14 +90,14 @@ docker run --rm -p 3000:3000 \
 
 ```bash
 export ZOSMF_HOST=your-zosmf-host.internal
-export ZOSMF_USER=your-user ZOSMF_PASSWORD=your-password
+export ZOSMF_TOKEN=your-zosmf-token
 docker compose up --build
 ```
 
 The compose file reads the same variable names as the MCP client `env` block (no
 `.env` file). It defaults `MCP_TRANSPORT` to `sse` and publishes `MCP_SSE_PORT`.
 
-### SSE endpoints
+### HTTP+SSE endpoints
 
 | Method | Path | Purpose |
 |---|---|---|

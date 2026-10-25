@@ -47,14 +47,17 @@ variable so marketplace installers can collect values after install.
 
 ## Authentication
 
-Provide **either** basic auth **or** a token. Startup fails if neither is set.
+Provide **either** token auth **or** basic auth. Startup fails if neither is set.
 
 | Variable | Description |
 |---|---|
+| `ZOSMF_TOKEN` | Auth token (token auth) — recommended over basic credentials. |
+| `ZOSMF_TOKEN_TYPE` | Token type, e.g. `LTPA2`. Defaults to `LTPA2`. |
 | `ZOSMF_USER` | User id (basic auth). |
 | `ZOSMF_PASSWORD` | Password (basic auth). |
-| `ZOSMF_TOKEN` | Auth token (token auth). |
-| `ZOSMF_TOKEN_TYPE` | Token type, e.g. `LTPA2`. Defaults to `LTPA2`. |
+
+> Source secrets (token or password) from a vault or your MCP client's secret
+> storage rather than hardcoding them in checked-in files.
 
 ## TLS
 
@@ -71,7 +74,7 @@ Provide **either** basic auth **or** a token. Startup fails if neither is set.
 |---|---|---|
 | `MCP_SERVER_NAME` | `mainframe-mcp-server` | Server name advertised to clients. |
 | `MCP_SERVER_VERSION` | `2.5.0` | Server version advertised to clients. |
-| `MCP_TRANSPORT` | `stdio` | `stdio` or `sse`. |
+| `MCP_TRANSPORT` | `stdio` | `stdio` or `sse` (legacy HTTP+SSE network transport). |
 | `MCP_SSE_PORT` | `3000` | Listen port when `MCP_TRANSPORT=sse`. |
 
 ## Logging
@@ -91,7 +94,7 @@ Logs are written to **stderr** so they never corrupt the stdio MCP channel.
 | `MAX_JES_SPOOL_FILES` | `20` | Max spool files fetched during diagnostics. |
 | `MAX_AUDIT_LINES` | `500` | Max RACF audit log lines to parse per query. |
 
-## Enterprise (Phase 3)
+## Enterprise integrations
 
 All enterprise variables are optional. Tools return `CONFIG_ERROR` with setup guidance when required values are missing.
 
@@ -159,6 +162,8 @@ export ZOSMF_USER=your-user
 export ZOSMF_PASSWORD=your-password
 npm run test:integration
 ```
+
+Token auth (`ZOSMF_TOKEN`) works here as well — set whichever method matches your sandbox.
 
 | Variable | Required | Description |
 |---|---|---|
