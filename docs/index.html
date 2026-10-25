@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Enterprise MCP server for IBM z/OS — jobs, datasets, USS, CICS, Db2, and operational diagnostics via Zowe SDK.">
+  <meta name="description" content="Enterprise MCP server for IBM z/OS — jobs, datasets, USS, CICS, Db2, and operational diagnostics via Zowe SDK, with multi-environment policy-as-code, RBAC, SIEM audit, and data protection.">
   <title>mainframe-mcp-server — MCP for IBM z/OS</title>
   <meta name="theme-color" content="#05080f">
   <script>
@@ -89,7 +89,8 @@
       <p class="hero-lead">
         An enterprise-grade Model Context Protocol server that exposes <strong>jobs, datasets, USS,
         CICS, Db2, and operational diagnostics</strong> to Cursor, VS Code, and other MCP clients —
-        over z/OSMF REST via the Zowe SDK (Open Mainframe Project).
+        over z/OSMF REST via the Zowe SDK (Open Mainframe Project) — with
+        <strong>multi-environment policy-as-code, RBAC, tamper-evident SIEM audit, and data protection</strong> built in.
       </p>
       <div class="hero-badges">
         <span class="badge badge-green">MCP · stdio + HTTP+SSE</span>
@@ -105,7 +106,7 @@
       <img class="hero-banner" src="assets/banner.png" alt="Bridge AI agents with IBM z/OS via MCP and Zowe SDK" width="900" height="auto">
       <div class="hero-meta">
         <div><span class="num">30+</span><span class="lbl">MCP tools</span></div>
-        <div><span class="num">9</span><span class="lbl">Domains</span></div>
+        <div><span class="num">10</span><span class="lbl">Domains</span></div>
         <div><span class="num">2</span><span class="lbl">Transports</span></div>
         <div><span class="num">100%</span><span class="lbl">Read-only capable</span></div>
       </div>
@@ -231,6 +232,22 @@
           <h3>Governed writes</h3>
           <p>JCL pre-flight scan (IDCAMS DELETE, IEFBR14 DISP deletes, blocked utilities), change-ticket enforcement, change windows, dry-run, and human-in-the-loop approval.</p>
         </div>
+        <div class="card">
+          <h3>Multi-environment</h3>
+          <p>Named systems — DEV/TEST/UAT/PROD, multiple LPARs — behind one server. Every tool takes an <code>environment</code> argument; each system carries its own credentials and policy, e.g. read-only on PROD.</p>
+        </div>
+        <div class="card">
+          <h3>Policy-as-code &amp; RBAC</h3>
+          <p>One YAML policy file maps roles to tools, dataset/USS patterns, and change-ticket rules; users map to roles per environment. <code>${env:VAR}</code> keeps secrets out of the file; unmapped users fail closed.</p>
+        </div>
+        <div class="card">
+          <h3>Audit &amp; SIEM</h3>
+          <p>Structured JSON audit records with correlation ids, exported to Splunk HEC, ELK/webhook, or OpenTelemetry. Records are SHA-256 hash-chained — tamper-evident and verifiable.</p>
+        </div>
+        <div class="card">
+          <h3>Data protection</h3>
+          <p>PII, card numbers (Luhn-validated), SSNs, secrets, JWTs, and private keys masked in job output and dataset reads. Classifications add line caps, sampling, and role-gated access.</p>
+        </div>
       </div>
     </section>
 
@@ -238,7 +255,9 @@
       <h2>Tools reference</h2>
       <p class="section-intro">
         Full input/output details:
-        <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/docs/tools-reference.md">tools-reference.md</a>
+        <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/docs/tools-reference.md">tools-reference.md</a>.
+        Every tool accepts an optional <code>environment</code> argument when multi-environment is configured
+        (see <a href="#enterprise">Enterprise</a>).
       </p>
 
       <div class="tool-category">
@@ -301,6 +320,14 @@
           <div class="tool-item"><code>security_posture_summary</code><span>Active security controls and recommendations</span></div>
           <div class="tool-item"><code>analyze_root_cause</code><span>Deep root-cause analysis with action items</span></div>
           <div class="tool-item"><code>predict_batch_failures</code><span>Predictive risk scoring for batch failures</span></div>
+        </div>
+      </div>
+
+      <div class="tool-category">
+        <h3>Governance</h3>
+        <div class="tool-list">
+          <div class="tool-item"><code>list_environments</code><span>Named z/OS environments with per-environment read-only and role policy</span></div>
+          <div class="tool-item"><code>whoami</code><span>Acting identity, resolved role, permissions, active environment, masking status</span></div>
         </div>
       </div>
     </section>
@@ -401,6 +428,15 @@ npm test          # unit tests, no mainframe required</pre>
             <tr><td><code>ZOSMF_CERT</code> / <code>ZOSMF_CERT_KEY</code></td><td>No</td><td>mTLS client certificate (PEM) — alternative to token auth</td></tr>
             <tr><td><code>ZOWE_TEAM_CONFIG</code></td><td>No</td><td>Import connection settings from a Zowe team config profile</td></tr>
             <tr><td><code>ZOSMF_REJECT_UNAUTHORIZED</code></td><td>No</td><td>TLS verification (default <code>true</code>)</td></tr>
+            <tr><td><code>SECURITY_POLICY_FILE</code></td><td>No</td><td>YAML policy file: roles, users→roles, named environments, data classifications</td></tr>
+            <tr><td><code>ZOSMF_ENVIRONMENTS</code></td><td>No</td><td>JSON array of named z/OSMF endpoints — multi-environment without a policy file</td></tr>
+            <tr><td><code>ZOSMF_ENV</code></td><td>No</td><td>Default environment for tool calls that omit the <code>environment</code> argument</td></tr>
+            <tr><td><code>SECURITY_AUDIT_FILE</code></td><td>No</td><td>NDJSON audit log with SHA-256 hash chain (verify: <code>npm run verify:audit</code>)</td></tr>
+            <tr><td><code>SECURITY_AUDIT_SPLUNK_URL</code> / <code>_TOKEN</code></td><td>No</td><td>Splunk HEC audit export</td></tr>
+            <tr><td><code>SECURITY_AUDIT_WEBHOOK_URL</code> / <code>_TOKEN</code></td><td>No</td><td>Generic HTTP webhook (ELK ingest, syslog-over-HTTP, SIEM bridge)</td></tr>
+            <tr><td><code>SECURITY_AUDIT_OTLP_URL</code></td><td>No</td><td>OpenTelemetry collector (OTLP/JSON <code>/v1/logs</code>)</td></tr>
+            <tr><td><code>SECURITY_DATA_PROTECTION</code></td><td>No</td><td>Mask PII/PCI/SSN/secrets in job output and dataset/USS reads (default <code>true</code>)</td></tr>
+            <tr><td><code>SECURITY_REDACTION_RULES</code> / <code>_STYLE</code></td><td>No</td><td>Rule ids (<code>ssn,credit_card,email,secrets,jwt,private_key</code>) and mask style (<code>mask</code> | <code>token</code>)</td></tr>
           </tbody>
         </table>
       </div>
@@ -409,6 +445,7 @@ npm test          # unit tests, no mainframe required</pre>
       <p>
         Full reference:
         <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/docs/configuration.md">configuration.md</a> ·
+        <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/docs/enterprise.md">enterprise.md</a> ·
         <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/docs/deployment.md">deployment.md</a> ·
         <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/config/mcp-client.example.json">mcp-client.example.json</a>
       </p>
@@ -463,10 +500,92 @@ npm test          # unit tests, no mainframe required</pre>
         <strong>Dry-run:</strong> <code>submit_jcl({ dryRun: true })</code> runs structure checks and the pre-flight scan and reports
         exactly what a real submission would do — without enforcing gates and without touching JES.
       </div>
+
+      <h3 style="margin-top:2rem;font-size:1.15rem;">Multi-environment, policy-as-code &amp; RBAC, audit &amp; SIEM, data protection</h3>
+      <p class="section-intro">
+        Four scale-up capabilities layer on top of the controls above — env-var rules always apply, and the policy file
+        can only narrow them. Full guide:
+        <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/docs/enterprise.md">enterprise.md</a> ·
+        worked example:
+        <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/config/policy.example.yaml">policy.example.yaml</a>
+      </p>
+      <p class="table-scroll-hint">Swipe horizontally to see all columns →</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Capability</th><th>Setup</th><th>What you get</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Multi-environment</td>
+              <td>Policy <code>environments:</code> or <code>ZOSMF_ENVIRONMENTS</code> (JSON) · default via <code>ZOSMF_ENV</code></td>
+              <td>Named systems (DEV/TEST/UAT/PROD, LPARs) behind one server. Every tool takes an <code>environment</code> argument; per-environment <code>readOnly</code> (e.g. PROD), <code>allowedRoles</code>, per-user environment restrictions, and per-environment credentials with cached sessions. <code>list_environments</code> shows the targets.</td>
+            </tr>
+            <tr>
+              <td>Policy-as-code &amp; RBAC</td>
+              <td><code>SECURITY_POLICY_FILE=policy.yaml</code></td>
+              <td>Roles → tool allow/deny globs, dataset/USS patterns, per-role read-only and change-ticket rules, read caps. Users → roles per environment; unmapped users get the default role or fail closed. Role inheritance with fail-safe <code>readOnly</code> accumulation.</td>
+            </tr>
+            <tr>
+              <td>Audit &amp; SIEM</td>
+              <td><code>SECURITY_AUDIT_FILE</code> · <code>SECURITY_AUDIT_SPLUNK_URL</code>/<code>_TOKEN</code> · <code>SECURITY_AUDIT_WEBHOOK_URL</code> · <code>SECURITY_AUDIT_OTLP_URL</code></td>
+              <td>One JSON record per call: correlation id, user, MCP client, environment, tool, redacted arguments, outcome, duration, result size. Batched, best-effort export — a dead collector never blocks a call. SHA-256 hash chain makes the stream tamper-evident: <code>npm run verify:audit</code> detects any edit, deletion, or reordering.</td>
+            </tr>
+            <tr>
+              <td>Data protection</td>
+              <td><code>SECURITY_DATA_PROTECTION=true</code> (default) · <code>SECURITY_REDACTION_RULES</code> · <code>SECURITY_REDACTION_STYLE</code> · policy <code>classifications:</code></td>
+              <td>SSNs, credit cards (Luhn-validated), emails, secrets (<code>PASSWORD=</code>, <code>api_key:</code>), JWTs, and private keys masked in job output and dataset/USS reads, with an explicit <code>[data protection: …]</code> footer. Classifications add per-resource rule overrides, line caps, head/tail sampling, and role-gated access.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code-label">Policy file (roles · users · environments · classifications)</div>
+      <div class="code-block">
+<pre>version: 1
+defaults:
+  role: viewer
+  environment: dev
+environments:
+  prod:
+    host: prod.zosmf.example.com
+    password: ${env:ZOSMF_PROD_PASSWORD}
+    readOnly: true                 # PROD is read-only
+    allowedRoles: [operator, sre]
+roles:
+  viewer:
+    tools: { allow: ["list_*", "get_*", "read_*", "search_*"] }
+    readOnly: true
+  operator:
+    inherits: viewer
+    readOnly: false                # explicit — parents are read-only
+    datasets: { allow: ["PROD.**"] }
+    changeTicketPattern: "CHG[0-9]{6}"
+users:
+  - username: BOB
+    roles: [operator]
+    environments: [dev, test, prod]
+dataProtection:
+  classifications:
+    - name: pci-cardholder
+      datasets: ["PROD.CARDS.**"]
+      redact: [credit_card, ssn]
+      maxLines: 200
+      sample: { head: 100, tail: 25 }</pre>
+      </div>
+
+      <div class="callout callout-info">
+        <strong>Identity resolution:</strong> the acting user comes from the SSE <code>X-MCP-User</code> header
+        (gateway deployments where an authenticating proxy injects it), <code>ZOSMF_USER_ID</code>, or the service
+        account. Check the effective policy anytime by asking the agent to run <code>whoami</code>.
+      </div>
+
       <div class="callout callout-warning">
         <strong>Pilot checklist:</strong> dedicated service account · PassTicket/PTKTDATA setup for end-user identity · secrets in vault · VPN/network to z/OSMF ·
         <code>verify_zosmf_connection</code> · <code>security_posture_summary</code> · start with
-        <code>SECURITY_READ_ONLY=true</code> and <code>SECURITY_JCL_SCAN=true</code>.
+        <code>SECURITY_READ_ONLY=true</code> and <code>SECURITY_JCL_SCAN=true</code> · enable <code>SECURITY_AUDIT_FILE</code>
+        (or a SIEM sink) from day one · put roles and environments in <code>SECURITY_POLICY_FILE</code> rather than env-var lists ·
+        verify the trail with <code>npm run verify:audit</code>.
       </div>
     </section>
 
@@ -498,6 +617,37 @@ Fix:     Verify PAYRPTX is compiled and linked into the correct load library.</p
       <div class="example">
         <div class="example-user">Which batch jobs are at risk of failing?</div>
         <pre class="example-result">Tool: predict_batch_failures({ hours: 168 })</pre>
+      </div>
+
+      <div class="example">
+        <div class="example-user">List the systems we can reach, then check my access</div>
+        <pre class="example-result">Tool: list_environments({})
+
+  Name     │ Description        │ z/OSMF                     │ Writes    │ Roles
+  default *│ Base connection    │ zosmf.example.com:443      │ read-only │ —
+  dev      │ Development LPAR   │ dev.zosmf.example.com:443  │ read-write│ —
+  prod     │ Production sysplex │ prod.zosmf.example.com:443 │ read-only │ operator
+
+Tool: whoami({})
+  Role: operator · Writes: permitted · Datasets: PROD.** · Ticket: CHG[0-9]{6}</pre>
+      </div>
+
+      <div class="example">
+        <div class="example-user">Read the card file from production</div>
+        <pre class="example-result">Tool: read_dataset({ dsn: "PROD.CARDS.MASTER", environment: "prod" })
+
+[masked content — PANs and SSNs redacted, first 100 + last 25 of 4,210 lines]
+
+[data protection: 312 item(s) masked (credit_card, ssn);
+ classification "pci-cardholder": sampled first 100 + last 25 of 4,210 lines]</pre>
+      </div>
+
+      <div class="example">
+        <div class="example-user">Submit this to PROD right now</div>
+        <pre class="example-result">Tool: submit_jcl({ jcl: "...", environment: "prod" })
+
+Error [FORBIDDEN]: Tool "submit_jcl" is a write operation and
+environment "prod" is read-only (policy: environments.prod.readOnly).</pre>
       </div>
     </section>
   </main>
