@@ -129,7 +129,7 @@ enforcing ticket/window gates and without touching JES.
 | Variable | Default | Description |
 |---|---|---|
 | `MCP_SERVER_NAME` | `mainframe-mcp-server` | Server name advertised to clients. |
-| `MCP_SERVER_VERSION` | `2.5.0` | Server version advertised to clients. |
+| `MCP_SERVER_VERSION` | `2.8.0` | Server version advertised to clients. |
 | `MCP_TRANSPORT` | `stdio` | `stdio` or `sse` (legacy HTTP+SSE network transport). |
 | `MCP_SSE_PORT` | `3000` | Listen port when `MCP_TRANSPORT=sse`. |
 

@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify gates before publishing
+        run: |
+          npm run lint
+          npm run typecheck
+          npm run build
+          npm test
+
+      - name: Verify tag matches package versions
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./package.json').version")
+          SRV=$(node -p "require('./server.json').packages[0].version")
+          if [ "$TAG" != "$PKG" ] || [ "$TAG" != "$SRV" ]; then
+            echo "::error::Tag v$TAG does not match package.json ($PKG) / server.json ($SRV)"
+            exit 1
+          fi
+          echo "Releasing version $TAG"
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install mcp-publisher (official registry CLI)
+        run: |
+          curl -sL -o publisher.tar.gz \
+            https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz
+          tar -xzf publisher.tar.gz mcp-publisher
+          chmod +x mcp-publisher
+          ./mcp-publisher --version
+
+      - name: Publish to the MCP registry
+        run: |
+          ./mcp-publisher validate server.json
+          ./mcp-publisher login github-actions
+          ./mcp-publisher publish server.json
+
+      - name: Release summary
+        run: |
+          echo "Published @notharshhaa/mainframe-mcp-server@${GITHUB_REF_NAME#v}"
+          echo "- npm: https://www.npmjs.com/package/@notharshhaa/mainframe-mcp-server"
+          echo "- MCP registry: https://registry.modelcontextprotocol.io"

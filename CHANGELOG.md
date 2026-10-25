@@ -4,7 +4,7 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.8.0] — 2026-10-25
 
 ### Added
 
@@ -85,5 +85,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   dataset and USS boundaries, JCL size cap, audit logging.
 - MCP registry metadata (`server.json`) for IDE-driven install flows.
 
-[Unreleased]: https://github.com/NotHarshhaa/mainframe-mcp-server/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/NotHarshhaa/mainframe-mcp-server/compare/v2.8.0...HEAD
+[2.8.0]: https://github.com/NotHarshhaa/mainframe-mcp-server/compare/v2.5.0...v2.8.0
 [2.5.0]: https://github.com/NotHarshhaa/mainframe-mcp-server/releases/tag/v2.5.0
