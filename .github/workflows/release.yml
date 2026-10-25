@@ -293,6 +293,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: assets
+          # Only our release assets — buildx also uploads a build-record
+          # (.dockerbuild) artifact that is not part of the release.
+          pattern: "*-release-assets"
           merge-multiple: true
 
       - name: Generate checksums and sign them
