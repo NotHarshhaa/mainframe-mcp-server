@@ -221,8 +221,8 @@ export function findFailedStep(text: string): string | null {
   // IEF450I jobname stepname procstep - ABEND ...
   const ief450 = text.match(/IEF450I\s+\S+\s+(\S+)(?:\s+(\S+))?\s+-\s+ABEND/i);
   if (ief450) return ief450[1];
-  // Generic "STEP WAS EXECUTED" / completion lines
-  const stepCc = text.match(/IEF142I\s+\S+\s+(\S+)\s+.*COND CODE\s+(\d+)/i);
+  // Generic "STEP WAS EXECUTED" / completion lines ("COND CODE 0008" or "COND CODE=0008")
+  const stepCc = text.match(/IEF142I\s+\S+\s+(\S+)\s+.*COND CODE\s*=?\s*(\d+)/i);
   if (stepCc && Number(stepCc[2]) >= 8) return stepCc[1];
   return null;
 }

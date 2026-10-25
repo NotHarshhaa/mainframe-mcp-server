@@ -123,21 +123,32 @@ export async function buildRootCauseReport(
 
 /**
  * Detect trend direction for a job's failures.
- * Splits the time-ordered list into three equal thirds and compares the
- * oldest-third count to the newest-third count (more accurate than a simple
- * half-split when there are many samples).
+ *
+ * Divides the look-back window into three equal time segments and compares the
+ * failure count in the oldest segment against the newest segment (more accurate
+ * than a simple half-split when there are many samples). `windowMs` must match
+ * the window used to collect `failures`.
  */
-function detectTrend(failures: FailedJobSummary[]): FailureRisk['trend'] {
-  const count = failures.length;
-  if (count < 3) return 'STABLE';
+function detectTrend(failures: FailedJobSummary[], windowMs: number): FailureRisk['trend'] {
+  // Too few samples to distinguish a trend from noise.
+  if (failures.length < 3) return 'STABLE';
 
-  const third = Math.ceil(count / 3);
-  const oldCount = failures.slice(0, third).length;
-  const newCount = failures.slice(count - third).length;
+  const now = Date.now();
+  const segmentMs = windowMs / 3;
+  const oldestBoundary = now - 2 * segmentMs; // before this → oldest third of the window
+  const newestBoundary = now - segmentMs; // after this → newest third of the window
+
+  let oldestCount = 0;
+  let newestCount = 0;
+  for (const failure of failures) {
+    if (failure.endedAt == null) continue;
+    if (failure.endedAt < oldestBoundary) oldestCount += 1;
+    else if (failure.endedAt >= newestBoundary) newestCount += 1;
+  }
 
   // Use a 20 % delta threshold to avoid noise flipping the label
-  const delta = newCount - oldCount;
-  const threshold = Math.max(1, Math.round(oldCount * 0.2));
+  const delta = newestCount - oldestCount;
+  const threshold = Math.max(1, Math.round(oldestCount * 0.2));
 
   if (delta >= threshold) return 'INCREASING';
   if (delta <= -threshold) return 'DECREASING';
@@ -202,7 +213,7 @@ export async function predictBatchFailures(
     else if (riskScore >= 50) riskLevel = 'HIGH';
     else if (riskScore >= 25) riskLevel = 'MEDIUM';
 
-    const trend = detectTrend(jobFailures);
+    const trend = detectTrend(jobFailures, windowMs);
 
     // Timestamp of most recent failure
     const lastOccurrence =

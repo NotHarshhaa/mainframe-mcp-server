@@ -81,6 +81,34 @@ describe('intelligence/shared – predictBatchFailures', () => {
     const risks = await predictBatchFailures(ctx, 168);
     expect(risks[0].trend).toBe('STABLE');
   });
+
+  it('reports INCREASING when failures cluster in the newest third of the window', async () => {
+    const hour = 3_600_000;
+    const now = Date.now();
+    jest.mocked(findFailedJobs).mockResolvedValue([
+      { job: job('TRENDUP', 'J1', 'ABEND S806'), abendCode: 'S806', endedAt: now - 1 * hour },
+      { job: job('TRENDUP', 'J2', 'ABEND S806'), abendCode: 'S806', endedAt: now - 2 * hour },
+      { job: job('TRENDUP', 'J3', 'ABEND S806'), abendCode: 'S806', endedAt: now - 3 * hour },
+      { job: job('TRENDUP', 'J4', 'ABEND S806'), abendCode: 'S806', endedAt: now - 160 * hour },
+    ]);
+    const risks = await predictBatchFailures(ctx, 168);
+    const trendUp = risks.find((r) => r.jobName === 'TRENDUP');
+    expect(trendUp?.trend).toBe('INCREASING');
+  });
+
+  it('reports DECREASING when failures cluster in the oldest third of the window', async () => {
+    const hour = 3_600_000;
+    const now = Date.now();
+    jest.mocked(findFailedJobs).mockResolvedValue([
+      { job: job('TRENDDOWN', 'J1', 'ABEND S806'), abendCode: 'S806', endedAt: now - 1 * hour },
+      { job: job('TRENDDOWN', 'J2', 'ABEND S806'), abendCode: 'S806', endedAt: now - 160 * hour },
+      { job: job('TRENDDOWN', 'J3', 'ABEND S806'), abendCode: 'S806', endedAt: now - 150 * hour },
+      { job: job('TRENDDOWN', 'J4', 'ABEND S806'), abendCode: 'S806', endedAt: now - 130 * hour },
+    ]);
+    const risks = await predictBatchFailures(ctx, 168);
+    const trendDown = risks.find((r) => r.jobName === 'TRENDDOWN');
+    expect(trendDown?.trend).toBe('DECREASING');
+  });
 });
 
 // ---------------------------------------------------------------------------

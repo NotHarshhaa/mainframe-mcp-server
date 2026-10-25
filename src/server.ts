@@ -95,7 +95,14 @@ export async function startSse(
     res.writeHead(404).end('Not found');
   });
 
-  await new Promise<void>((resolve) => httpServer.listen(config.mcp.ssePort, resolve));
+  await new Promise<void>((resolve, reject) => {
+    // Surface listen failures (e.g. port already in use) as a clean startup error.
+    httpServer.once('error', reject);
+    httpServer.listen(config.mcp.ssePort, () => {
+      httpServer.removeListener('error', reject);
+      resolve();
+    });
+  });
   logger.info(
     { port: config.mcp.ssePort, sse: '/sse', messages: '/messages' },
     'mainframe-mcp-server listening (SSE transport)',

@@ -85,7 +85,7 @@ export const registerLookupAbendTool: ToolRegistrar = (server, ctx) => {
         catalog = catalog.filter((e) => e.category === category);
       }
 
-      ctx.logger.debug({ search, category, count: catalog.length }, 'mainframe_lookup_abend_code');
+      ctx.logger.debug({ search, category, count: catalog.length }, 'lookup_abend_code');
       return textResult(formatAbendCatalog(catalog));
     }),
   );

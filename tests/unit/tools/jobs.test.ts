@@ -12,6 +12,7 @@ import {
   normalizeJobId,
   normalizeSpoolFile,
 } from '../../../src/tools/jobs/shared.js';
+import { rewriteJobCardParam } from '../../../src/tools/jobs/submit-jcl.js';
 import { ValidationError } from '../../../src/utils/errors.js';
 import type { Job } from '../../../src/types/zos.js';
 
@@ -304,6 +305,39 @@ describe('jobs/shared', () => {
       expect(result.abendCode).toBeNull();
       expect(result.evidence).toHaveLength(0);
       expect(result.reason).toContain('CC 0016');
+    });
+  });
+
+  describe('rewriteJobCardParam', () => {
+    it('rewrites CLASS on the JOB card', () => {
+      const jcl = "//PAYJOB01 JOB (ACCT),'demo',CLASS=A,NOTIFY=USER1\n//STEP1 EXEC PGM=IEFBR14";
+      const { jcl: out, note } = rewriteJobCardParam(jcl, 'CLASS', 'B');
+      expect(note).toBeNull();
+      expect(out).toContain('CLASS=B');
+      expect(out).not.toContain('CLASS=A');
+    });
+
+    it('leaves CLASS on a SET statement untouched when the JOB card has none', () => {
+      const jcl = "//PAYJOB01 JOB (ACCT),'demo'\n// SET CLASS=X\n//STEP1 EXEC PGM=IEFBR14";
+      const { jcl: out, note } = rewriteJobCardParam(jcl, 'CLASS', 'B');
+      expect(note).toMatch(/not found on JOB card/);
+      expect(out).toContain('SET CLASS=X');
+    });
+
+    it('treats $ literally in the replacement value', () => {
+      const jcl = "//PAYJOB01 JOB (ACCT),'demo',NOTIFY=OLDUSR\n//STEP1 EXEC PGM=IEFBR14";
+      const { jcl: out, note } = rewriteJobCardParam(jcl, 'NOTIFY', "NEW$'USR");
+      expect(note).toBeNull();
+      expect(out).toContain("NOTIFY=NEW$'USR");
+      expect(out).not.toContain('OLDUSR');
+    });
+
+    it('does not rewrite parameters on non-JOB statements', () => {
+      const jcl = "//PAYJOB01 JOB (ACCT),'demo',CLASS=A\n//STEP1 EXEC PGM=IEFBR14,CLASS=B";
+      const { jcl: out, note } = rewriteJobCardParam(jcl, 'CLASS', 'C');
+      expect(note).toBeNull();
+      expect(out).toContain('JOB (ACCT),\'demo\',CLASS=C');
+      expect(out).toContain('PGM=IEFBR14,CLASS=B');
     });
   });
 });

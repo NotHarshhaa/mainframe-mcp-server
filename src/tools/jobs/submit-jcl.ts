@@ -41,12 +41,26 @@ const inputShape = {
 
 /**
  * Attempt to rewrite a JOB card parameter in-place.
+ * Only the `//name JOB ...` statement is considered, so identically-named
+ * parameters on SET statements or later cards are left untouched.
  * Returns the modified JCL and a note if the parameter was not found.
  */
-function rewriteJobCardParam(jcl: string, param: string, value: string): { jcl: string; note: string | null } {
-  const regex = new RegExp(`(\\b${param}=)[^\\s,)]+`, 'i');
-  if (regex.test(jcl)) {
-    return { jcl: jcl.replace(regex, `$1${value}`), note: null };
+export function rewriteJobCardParam(
+  jcl: string,
+  param: string,
+  value: string,
+): { jcl: string; note: string | null } {
+  const lines = jcl.split('\n');
+  const jobCardIndex = lines.findIndex((line) => /^\/\/[A-Z0-9@#$]{1,8}\s+JOB\b/i.test(line));
+
+  if (jobCardIndex >= 0) {
+    const regex = new RegExp(`(\\b${param}=)[^\\s,)]+`, 'i');
+    const jobCard = lines[jobCardIndex];
+    if (regex.test(jobCard)) {
+      // Function replacement so "$" and "$'" in the value are taken literally.
+      lines[jobCardIndex] = jobCard.replace(regex, (_match, prefix: string) => prefix + value);
+      return { jcl: lines.join('\n'), note: null };
+    }
   }
   return {
     jcl,
@@ -69,10 +83,11 @@ export const registerSubmitJclTool: ToolRegistrar = (server, ctx) => {
         throw new ValidationError('JCL must not contain null characters.');
       }
 
-      // Ensure at least one EXEC step follows the JOB card
+      // Ensure at least one EXEC step follows the JOB card. Comment lines
+      // ("//*") must not satisfy this check.
       const linesAfterJob = normalized.split('\n').slice(1);
       const hasExec = linesAfterJob.some(
-        (line) => /^\/\/\S*\s+EXEC\s/i.test(line) && !/^\/\/\*/.test(line),
+        (line) => !line.trim().startsWith('//*') && /^\/\/\S*\s+EXEC\s/i.test(line),
       );
       if (!hasExec) {
         throw new ValidationError(
@@ -109,9 +124,15 @@ export const registerSubmitJclTool: ToolRegistrar = (server, ctx) => {
 
         while (job.status !== 'OUTPUT' && (Date.now() - start) < timeoutSeconds * 1000) {
           await new Promise((resolve) => setTimeout(resolve, 2000));
-          const rawJob = await GetJobs.getJob(ctx.session, job.jobId);
-          if (rawJob) {
-            job = normalizeJob(rawJob);
+          try {
+            const rawJob = await GetJobs.getJob(ctx.session, job.jobId);
+            if (rawJob) {
+              job = normalizeJob(rawJob);
+            }
+          } catch {
+            // Transient poll failure (e.g. network blip): keep the last known
+            // status and retry until the timeout expires rather than failing a
+            // submission that already succeeded.
           }
         }
 

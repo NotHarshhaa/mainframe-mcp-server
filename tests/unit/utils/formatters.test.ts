@@ -6,10 +6,11 @@ import {
   formatJobList,
   formatMemberList,
   formatStructuredResponse,
+  formatUssListing,
   renderTable,
   truncateLines,
 } from '../../../src/utils/formatters.js';
-import type { AbendCodeInfo, Job, JobFailureAnalysis } from '../../../src/types/zos.js';
+import type { AbendCodeInfo, Job, JobFailureAnalysis, UssEntry } from '../../../src/types/zos.js';
 
 describe('formatters', () => {
   describe('renderTable', () => {
@@ -168,6 +169,39 @@ describe('formatters', () => {
     it('includes a truncation notice when content was capped', () => {
       const header = formatContentHeader('SYS1.PROCLIB(MEM)', true, 5000, 2000);
       expect(header).toContain('[Showing first 2000 of 5000 lines]');
+    });
+  });
+
+  describe('formatUssListing', () => {
+    const entry = (overrides: Partial<UssEntry>): UssEntry => ({
+      name: 'entry',
+      type: 'file',
+      ...overrides,
+    });
+
+    it('pluralizes entry types correctly', () => {
+      const out = formatUssListing('/u/app', [
+        entry({ name: 'a', type: 'directory' }),
+        entry({ name: 'b', type: 'directory' }),
+        entry({ name: 'c', type: 'file' }),
+        entry({ name: 'd', type: 'file' }),
+        entry({ name: 'e', type: 'symlink' }),
+      ]);
+      expect(out).toContain('2 directories');
+      expect(out).toContain('2 files');
+      expect(out).toContain('1 symlink');
+      expect(out).not.toContain('directoryy');
+      expect(out).not.toContain('directoryies');
+    });
+
+    it('uses singular forms for single entries', () => {
+      const out = formatUssListing('/u/app', [
+        entry({ name: 'a', type: 'directory' }),
+        entry({ name: 'b', type: 'file' }),
+      ]);
+      expect(out).toContain('1 file, 1 directory');
+      expect(out).not.toContain('directoryy');
+      expect(out).not.toContain('directoryies');
     });
   });
 });

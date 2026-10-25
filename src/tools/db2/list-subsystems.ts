@@ -11,7 +11,7 @@ export const registerListDb2SubsystemsTool: ToolRegistrar = (server, ctx) => {
     'list_db2_subsystems',
     'List Db2 subsystems (locations) available via Db2 REST (requires DB2_LOCATION).',
     {},
-    securedHandler(ctx, 'mainframe_list_db2_subsystems', async () => {
+    securedHandler(ctx, 'list_db2_subsystems', async () => {
       const locations = await listDb2Subsystems(ctx);
       ctx.logger.debug({ count: locations.length }, 'list_db2_subsystems');
       const rows = locations.map((loc) => [loc, 'AVAILABLE']);

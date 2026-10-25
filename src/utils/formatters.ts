@@ -302,9 +302,13 @@ export function formatUssListing(
   // Build type-count summary
   const counts: Record<string, number> = {};
   for (const e of entries) counts[e.type] = (counts[e.type] ?? 0) + 1;
+  const pluralize = (t: string, n: number) => {
+    if (t === 'directory') return n === 1 ? 'directory' : 'directories';
+    return n === 1 ? t : `${t}s`;
+  };
   const summary = (['file', 'directory', 'symlink', 'other'] as const)
     .filter((t) => counts[t])
-    .map((t) => `${counts[t]} ${t}${counts[t] > 1 ? (t === 'directory' ? 'ies' : 's') : t === 'directory' ? 'y' : ''}`)
+    .map((t) => `${counts[t]} ${pluralize(t, counts[t])}`)
     .join(', ');
 
   const total = opts?.totalCount ?? entries.length;

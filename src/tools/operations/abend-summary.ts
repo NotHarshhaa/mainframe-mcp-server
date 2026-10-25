@@ -23,7 +23,7 @@ export const registerAbendSummaryTool: ToolRegistrar = (server, ctx) => {
     'summarize_abends',
     'Aggregate abend codes across recent failed jobs, with counts and a short description.',
     inputShape,
-    securedHandler(ctx, 'mainframe_summarize_abends', async ({ hours, owner }) => {
+    securedHandler(ctx, 'summarize_abends', async ({ hours, owner }) => {
       const window = hours ?? 24;
       const failures = await findFailedJobs(ctx, window, owner ?? '*');
       const aggregated = aggregateAbends(failures);
