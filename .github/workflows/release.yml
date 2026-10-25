@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  id-token: write
+  contents: write # create the GitHub release
+  id-token: write # MCP registry: mcp-publisher login github-oidc
 
 jobs:
   publish:
@@ -43,8 +43,16 @@ jobs:
           fi
           echo "Releasing version $TAG"
 
-      - name: Publish to npm
-        run: npm publish --access public
+      - name: Publish to npm (skipped when version already exists — rerun safe)
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npm view "$PKG@$VER" version 2>/dev/null || true)
+          if [ "$PUBLISHED" = "$VER" ]; then
+            echo "$PKG@$VER already on npm — skipping publish"
+          else
+            npm publish --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -59,8 +67,43 @@ jobs:
       - name: Publish to the MCP registry
         run: |
           ./mcp-publisher validate server.json
-          ./mcp-publisher login github-actions
+          ./mcp-publisher login github-oidc
           ./mcp-publisher publish server.json
+
+      - name: Create GitHub release (notes from CHANGELOG + auto-generated commits)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="$GITHUB_REF_NAME"
+          VER="${TAG#v}"
+          PKG=$(node -p "require('./package.json').name")
+
+          # Extract this version's section from CHANGELOG.md (Keep a Changelog
+          # format). Empty when the section is missing — --generate-notes
+          # below still produces a full commit list.
+          awk -v header="## [$VER]" '
+            index($0, header) == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+
+          if [ -s release-notes.md ]; then
+            echo "Extracted CHANGELOG section for $VER ($(wc -l < release-notes.md) lines)"
+          else
+            echo "No CHANGELOG section for $VER — falling back to auto-generated notes only"
+            : > release-notes.md
+          fi
+
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG already exists — updating notes"
+            gh release edit "$TAG" --title "$PKG v$VER" --notes-file release-notes.md
+          else
+            gh release create "$TAG" \
+              --verify-tag \
+              --title "$PKG v$VER" \
+              --notes-file release-notes.md \
+              --generate-notes
+          fi
 
       - name: Release summary
         run: |

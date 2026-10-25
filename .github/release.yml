@@ -1,0 +1,27 @@
+# Configuration for GitHub's auto-generated release notes
+# (gh release create --generate-notes). PRs are grouped by label; direct
+# commits land in the catch-all category. The curated section above it comes
+# from CHANGELOG.md — see the Release workflow.
+
+changelog:
+  exclude:
+    labels: []
+  categories:
+    - title: 🚨 Breaking Changes
+      labels:
+        - breaking
+    - title: ✨ Features
+      labels:
+        - feat
+        - feature
+        - enhancement
+    - title: 🛠️ Fixes
+      labels:
+        - fix
+        - bug
+    - title: 📝 Documentation
+      labels:
+        - docs
+    - title: 🧹 Other Changes
+      labels:
+        - '*'

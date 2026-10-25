@@ -51,6 +51,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   intelligence-tool mechanics, limits, troubleshooting/FAQ, and an honest
   comparison table.
 
+### Commits in this release (`v2.5.0...v2.8.0`)
+
+| Commit | Summary |
+|---|---|
+| `b3ed26f` | Fix trend detection, security-gate tool names, JOB-card rewrites, wait-loop resilience, USS pluralization, SSE startup errors (+ regression tests) |
+| `734f542` | Documentation accuracy: Zowe attribution, token-first examples, transports, trademarks |
+| `cebe728` | Website redesign: Operations Console theme, upgraded header, logo & favicon |
+| `95bbcd8` | Project hygiene: CI workflow, SECURITY/CONTRIBUTING/CHANGELOG, README overhaul, read-only default, demo animation |
+| `476b270` | Per-user identity (PassTicket/mTLS/JWT-APIML/team config) and governed writes (scan, tickets, windows, approval) |
+| `20ca60b` | Website: enterprise identity & governed-writes sections |
+| `d700aef` | Release 2.8.0: version bump across package/server/schema/docs and npm + MCP registry release workflow |
+
 ### Fixed
 
 - `predict_batch_failures`: trend detection was dead code (always reported
