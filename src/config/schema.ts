@@ -79,6 +79,25 @@ export const configSchema = z
       rmfMetricsEnabled: booleanFromEnv.default(true),
       racfAuditUssPath: z.string().optional(),
       racfAuditDataset: z.string().optional(),
+      // Console / operator commands (z/OSMF Console API). The console is
+      // activated dynamically; requires CONSOLE authority for the identity.
+      consoleName: z.string().default('MCPDYN01'),
+      // LOGREC dataset for analyze_logrec (EREP report job).
+      logrecDataset: z.string().default('SYS1.LOGREC'),
+      // IBM MQ REST (mqweb server).
+      mqRestHost: z.string().optional(),
+      mqRestPort: portSchema.default(9443),
+      mqRestUser: z.string().optional(),
+      mqRestPassword: z.string().optional(),
+      // Batch scheduler REST adapters (Control-M / CA 7 / IWS).
+      schedulerAdapters: z.string().optional(),
+      // Capacity & cost: LPAR MSU rating and MLC price assumptions.
+      capacityMsuRating: z.coerce.number().positive().optional(),
+      mlcMsuMonthlyPrice: z.coerce.number().positive().optional(),
+      mlcCurrency: z.string().default('USD'),
+      // Volume space alert threshold (percent free below which a volume is
+      // flagged by get_volume_space).
+      storageFreeThreshold: z.coerce.number().min(0).max(100).default(10),
     }),
     security: z.object({
       // Safe default: write tools are blocked unless explicitly enabled.

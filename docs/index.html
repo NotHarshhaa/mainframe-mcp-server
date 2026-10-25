@@ -106,7 +106,7 @@
       <img class="hero-banner" src="assets/banner.png" alt="Bridge AI agents with IBM z/OS via MCP and Zowe SDK" width="900" height="auto">
       <div class="hero-meta">
         <div><span class="num">30+</span><span class="lbl">MCP tools</span></div>
-        <div><span class="num">10</span><span class="lbl">Domains</span></div>
+        <div><span class="num">16</span><span class="lbl">Domains</span></div>
         <div><span class="num">2</span><span class="lbl">Transports</span></div>
         <div><span class="num">100%</span><span class="lbl">Read-only capable</span></div>
       </div>
@@ -248,6 +248,22 @@
           <h3>Data protection</h3>
           <p>PII, card numbers (Luhn-validated), SSNs, secrets, JWTs, and private keys masked in job output and dataset reads. Classifications add line caps, sampling, and role-gated access.</p>
         </div>
+        <div class="card">
+          <h3>Console &amp; JES</h3>
+          <p>Gated operator commands (<code>D A,L</code>, <code>D GRS</code>, <code>D WLM</code>), JES2 hold/release, job cancel, IMS commands, operations-log tail, HSM activity, and EREP/LOGREC reports.</p>
+        </div>
+        <div class="card">
+          <h3>Schedulers</h3>
+          <p>Control-M, CA 7, and IBM Workload Automation job status via REST adapters, plus JCL-based dataset-flow analysis for job dependency work.</p>
+        </div>
+        <div class="card">
+          <h3>Messaging &amp; storage</h3>
+          <p>IBM MQ queue depths and channel status via MQ REST, DASD volume space from z/OSMF SMI with low-space alerts, and VSAM/dataset attribute reads.</p>
+        </div>
+        <div class="card">
+          <h3>Capacity &amp; cost</h3>
+          <p>Per-step CPU from JES message logs, MSU estimates from your LPAR rating, MLC cost attribution with explicit pricing assumptions, and dump digests (CEEDUMP/SYSMDUMP/SYSUDUMP).</p>
+        </div>
       </div>
     </section>
 
@@ -313,6 +329,9 @@
           <div class="tool-item"><code>list_cics_regions</code><span>List CICS regions via CMCI REST</span></div>
           <div class="tool-item"><code>get_cics_region_status</code><span>Status and attributes of a CICS region</span></div>
           <div class="tool-item"><code>list_cics_transactions</code><span>Transaction definitions in a region</span></div>
+          <div class="tool-item"><code>get_cics_region_stats</code><span>Region statistics/attributes from the CMCI CICSRegion resource</span></div>
+          <div class="tool-item"><code>cics_newcopy</code><span>NEWCOPY a program via CMCI action — gated write (CICS TS 5.6+)</span></div>
+          <div class="tool-item"><code>cics_disable_transaction</code><span>Disable/enable a local transaction via CMCI SET — gated write</span></div>
           <div class="tool-item"><code>list_db2_subsystems</code><span>List Db2 locations via Db2 REST</span></div>
           <div class="tool-item"><code>search_db2_catalog</code><span>Search catalog tables and views</span></div>
           <div class="tool-item"><code>get_smf_metrics</code><span>SMF/RMF performance metrics snapshot</span></div>
@@ -328,6 +347,34 @@
         <div class="tool-list">
           <div class="tool-item"><code>list_environments</code><span>Named z/OS environments with per-environment read-only and role policy</span></div>
           <div class="tool-item"><code>whoami</code><span>Acting identity, resolved role, permissions, active environment, masking status</span></div>
+        </div>
+      </div>
+
+      <div class="tool-category">
+        <h3>Console &amp; JES</h3>
+        <div class="tool-list">
+          <div class="tool-item"><code>issue_console_command</code><span>MVS operator commands (<code>D A,L</code>, <code>D GRS</code>) — gated write, with follow-up collection</span></div>
+          <div class="tool-item"><code>get_console_messages</code><span>Operations-log tail (SYSLOG-style console feed)</span></div>
+          <div class="tool-item"><code>hold_job</code> / <code>release_job</code><span>JES2 <code>$HJ</code> / <code>$OJ</code> hold and release — gated writes</span></div>
+          <div class="tool-item"><code>cancel_job</code><span>Cancel a job via the z/OSMF jobs API — gated write</span></div>
+          <div class="tool-item"><code>get_wlm_status</code><span><code>D WLM</code> display — gated write</span></div>
+          <div class="tool-item"><code>ims_command</code><span>IMS commands via the system console (<code>/DIS ACTIVE</code>, <code>/DIS TRAN …</code>) — gated write</span></div>
+          <div class="tool-item"><code>get_hsm_activity</code><span>DFSMShsm recall/migration activity from the operations log</span></div>
+          <div class="tool-item"><code>analyze_logrec</code><span>Submit an EREP report against LOGREC and summarize errors — gated write</span></div>
+        </div>
+      </div>
+
+      <div class="tool-category">
+        <h3>Schedulers · MQ · Storage · Capacity · Dumps</h3>
+        <div class="tool-list">
+          <div class="tool-item"><code>scheduler_job_status</code><span>Control-M / CA 7 / IBM WLS job status via REST (<code>SCHEDULER_ADAPTERS</code>)</span></div>
+          <div class="tool-item"><code>job_dependencies</code><span>JCL dataset-flow analysis — inputs, outputs, updates, PROCs</span></div>
+          <div class="tool-item"><code>mq_queue_status</code><span>Queue depths vs maxdepth with high-water warnings (MQ REST)</span></div>
+          <div class="tool-item"><code>mq_channel_status</code><span>Channel status and connection counts (MQ REST)</span></div>
+          <div class="tool-item"><code>get_volume_space</code><span>DASD volume space via z/OSMF SMI with low-space alerts</span></div>
+          <div class="tool-item"><code>get_job_capacity</code><span>Per-step and total CPU from JESMSGLG + MSU estimate</span></div>
+          <div class="tool-item"><code>estimate_mlc_cost</code><span>MLC cost attribution from CPU/MSU with explicit assumptions</span></div>
+          <div class="tool-item"><code>summarize_dump</code><span>CEEDUMP / SYSMDUMP / SYSUDUMP digest — codes, module, conditions</span></div>
         </div>
       </div>
     </section>
@@ -504,7 +551,9 @@ npm test          # unit tests, no mainframe required</pre>
       <h3 style="margin-top:2rem;font-size:1.15rem;">Multi-environment, policy-as-code &amp; RBAC, audit &amp; SIEM, data protection</h3>
       <p class="section-intro">
         Four scale-up capabilities layer on top of the controls above — env-var rules always apply, and the policy file
-        can only narrow them. Full guide:
+        can only narrow them. Operator commands, JES2 hold/release, job cancel, IMS commands, CICS NEWCOPY and
+        transaction disable are all <strong>gated writes</strong>: they respect <code>SECURITY_READ_ONLY</code>, role
+        allow-lists, change tickets, and change windows like <code>submit_jcl</code> does. Full guide:
         <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/docs/enterprise.md">enterprise.md</a> ·
         worked example:
         <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/config/policy.example.yaml">policy.example.yaml</a>
@@ -648,6 +697,36 @@ Tool: whoami({})
 
 Error [FORBIDDEN]: Tool "submit_jcl" is a write operation and
 environment "prod" is read-only (policy: environments.prod.readOnly).</pre>
+      </div>
+
+      <div class="example">
+        <div class="example-user">Show me the jobs waiting on PAYJOB01's outputs</div>
+        <pre class="example-result">Tool: job_dependencies({ jobId: "JOB01234" })
+
+1. SUMMARY
+  Inputs (read):    PROD.PAY.TRANS, DEV.PAY.EXTRACT
+  Updates:          PROD.PAY.MASTER
+  Outputs:          PROD.PAY.RESULTS, PROD.PAY.LOG
+  PROCs invoked:    PAYMERGE</pre>
+      </div>
+
+      <div class="example">
+        <div class="example-user">Display the active operators and held jobs</div>
+        <pre class="example-result">Tool: issue_console_command({ command: "D A,L" })
+
+1. RESPONSE  (console MCPDYN01)
+  IEE114I 10.45.12 ACTIVE OPRUNIT=SYS1 …
+
+[blocked with SECURITY_READ_ONLY=true unless explicitly enabled]</pre>
+      </div>
+
+      <div class="example">
+        <div class="example-user">Why did the CICS transaction die? Summarize the dump</div>
+        <pre class="example-result">Tool: summarize_dump({ jobId: "JOB01234", ddName: "SYSUDUMP" })
+
+Dump type: SYSUDUMP · System CC: S0C4 · User CC: 1234
+Failing module: PAYRPTX offset 0000A2C6
+Sections: REGISTERS, STORAGE, CONTROL BLOCKS</pre>
       </div>
     </section>
   </main>

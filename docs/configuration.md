@@ -185,6 +185,13 @@ All enterprise variables are optional. Tools return `CONFIG_ERROR` with setup gu
 |---|---|---|
 | `RACF_AUDIT_USS_PATH` | — | USS path to RACF audit log file. |
 | `RACF_AUDIT_DATASET` | — | Sequential dataset containing audit records. |
+| `ZOSMF_CONSOLE_NAME` | `MCPDYN01` | Extended MCS console used for operator commands (dynamically activated; requires CONSOLE authority). |
+| `LOGREC_DATASET` | `SYS1.LOGREC` | LOGREC dataset used by `analyze_logrec` (EREP report). |
+| `MQ_REST_HOST` / `_PORT` / `_USER` / `_PASSWORD` | — | IBM MQ REST (mqweb) endpoint for queue and channel status tools. |
+| `SCHEDULER_ADAPTERS` | — | JSON array of batch scheduler REST endpoints (Control-M, CA 7, IWS) with host/token/path templates. |
+| `CAPACITY_MSU_RATING` | — | LPAR MSU/hour capacity for MSU consumption estimates. |
+| `MLC_MSU_MONTHLY_PRICE` / `MLC_CURRENCY` | — | Monthly $/MSU price and currency for MLC cost attribution. |
+| `STORAGE_FREE_THRESHOLD` | `10` | Percent-free threshold below which `get_volume_space` flags a volume. |
 
 ## Enterprise security controls
 

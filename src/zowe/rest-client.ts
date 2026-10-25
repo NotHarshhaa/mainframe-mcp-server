@@ -105,6 +105,15 @@ export async function postJson<T extends object>(
   }
 }
 
+/** PUT a raw (XML) body and return the response text — CMCI actions. */
+export async function putText(session: Session, resource: string, body: string): Promise<string> {
+  try {
+    return await RestClient.putExpectString(session, resource, [], body);
+  } catch (err) {
+    throw mapRestError(err, resource);
+  }
+}
+
 function mapRestError(err: unknown, resource: string): Error {
   const normalized = normalizeError(err);
   if (/ECONNREFUSED|ENOTFOUND|ETIMEDOUT|certificate/i.test(normalized.message)) {

@@ -35,6 +35,12 @@ import { registerSmfTools } from './tools/smf/index.js';
 import { registerSecurityTools } from './tools/security/index.js';
 import { registerIntelligenceTools } from './tools/intelligence/index.js';
 import { registerGovernanceTools } from './tools/governance/index.js';
+import { registerConsoleTools } from './tools/console/index.js';
+import { registerSchedulerTools } from './tools/scheduler/index.js';
+import { registerMqTools } from './tools/mq/index.js';
+import { registerStorageTools } from './tools/storage/index.js';
+import { registerCapacityTools } from './tools/capacity/index.js';
+import { registerDumpTools } from './tools/dumps/index.js';
 
 export interface BuildServerOptions {
   /** Audit pipeline created by {@link createAuditFromConfig}; absent = no sinks. */
@@ -119,6 +125,12 @@ export function buildServer(config: AppConfig, logger: Logger, opts?: BuildServe
   registerSecurityTools(server, ctx);
   registerIntelligenceTools(server, ctx);
   registerGovernanceTools(server, ctx);
+  registerConsoleTools(server, ctx);
+  registerSchedulerTools(server, ctx);
+  registerMqTools(server, ctx);
+  registerStorageTools(server, ctx);
+  registerCapacityTools(server, ctx);
+  registerDumpTools(server, ctx);
 
   logger.info('All tool groups registered');
   return server;

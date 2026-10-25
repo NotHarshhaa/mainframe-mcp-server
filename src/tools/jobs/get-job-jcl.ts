@@ -2,7 +2,7 @@
  * `get_job_jcl` — retrieve the submitted JCL for a job from its spool.
  */
 import { z } from 'zod';
-import type { ToolRegistrar } from '../../types/tools.js';
+import type { ToolRegistrar, ToolContext } from '../../types/tools.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { formatContentHeader, textResult, truncateLines } from '../../utils/formatters.js';
 import { defineTool } from '../../utils/define-tool.js';
@@ -13,6 +13,29 @@ import { assertValidJobId, fetchJob, fetchSpoolContent, fetchSpoolFiles, normali
  * JESJCLIN is most common; JESJCL is used on some systems; JCL and SYSIN as fallbacks.
  */
 const JCL_DDS = ['JESJCLIN', 'JESJCL', 'JCL', 'SYSIN'];
+
+/** Fetch the raw JCL text of a job from its spool (shared with other tools). */
+export async function getJobJclText(ctx: ToolContext, jobId: string): Promise<string> {
+  assertValidJobId(jobId);
+  const normalizedId = normalizeJobId(jobId);
+  const job = await fetchJob(ctx, normalizedId);
+  const files = await fetchSpoolFiles(ctx, job.jobName, job.jobId);
+
+  const jclFile = files
+    .filter((file) => JCL_DDS.includes(file.ddName.toUpperCase()))
+    .sort(
+      (a, b) =>
+        JCL_DDS.indexOf(a.ddName.toUpperCase()) - JCL_DDS.indexOf(b.ddName.toUpperCase()),
+    )[0];
+
+  if (!jclFile) {
+    throw new NotFoundError(`No JCL spool DD found for ${job.jobName} (${job.jobId}).`, {
+      searched: JCL_DDS.join(', '),
+      available: files.map((f) => f.ddName).join(', '),
+    });
+  }
+  return fetchSpoolContent(ctx, job.jobName, job.jobId, jclFile.id);
+}
 
 export const registerGetJobJclTool: ToolRegistrar = (server, ctx) => {
   defineTool(server, ctx, 'get_job_jcl', 'Retrieve the JCL that was submitted for a job (from JESJCLIN / JESJCL / JCL spool DDs). Supports custom line limit.', {
@@ -27,30 +50,13 @@ export const registerGetJobJclTool: ToolRegistrar = (server, ctx) => {
       assertValidJobId(jobId);
       const normalizedId = normalizeJobId(jobId);
 
-      const job = await fetchJob(ctx, normalizedId);
-      const files = await fetchSpoolFiles(ctx, job.jobName, job.jobId);
-
-      const jclFile = files
-        .filter((file) => JCL_DDS.includes(file.ddName.toUpperCase()))
-        .sort(
-          (a, b) =>
-            JCL_DDS.indexOf(a.ddName.toUpperCase()) - JCL_DDS.indexOf(b.ddName.toUpperCase()),
-        )[0];
-
-      if (!jclFile) {
-        throw new NotFoundError(`No JCL spool DD found for ${job.jobName} (${job.jobId}).`, {
-          searched: JCL_DDS.join(', '),
-          available: files.map((f) => f.ddName).join(', '),
-        });
-      }
-
-      const raw = await fetchSpoolContent(ctx, job.jobName, job.jobId, jclFile.id);
+      const raw = await getJobJclText(ctx, normalizedId);
       const cap = Math.min(maxLines ?? ctx.config.limits.maxJobOutputLines, ctx.config.limits.maxJobOutputLines);
       const { text, truncated, totalLines } = truncateLines(raw, cap);
-      ctx.logger.debug({ jobId: normalizedId, ddName: jclFile.ddName, totalLines }, 'get_job_jcl');
+      ctx.logger.debug({ jobId: normalizedId, totalLines }, 'get_job_jcl');
 
       const header = formatContentHeader(
-        `JCL — ${job.jobName} (${job.jobId}) DD=${jclFile.ddName}  [${totalLines} lines]`,
+        `JCL — ${jobId.toUpperCase()}  [${totalLines} lines]`,
         truncated,
         totalLines,
         cap,

@@ -35,6 +35,17 @@ export const WRITE_TOOLS = new Set([
   'write_uss_file',
   'create_uss_directory',
   'change_uss_permissions',
+  // Console & operator actions (gated writes)
+  'issue_console_command',
+  'hold_job',
+  'release_job',
+  'cancel_job',
+  'get_wlm_status',
+  'ims_command',
+  'analyze_logrec',
+  // CICS actions (gated writes)
+  'cics_newcopy',
+  'cics_disable_transaction',
 ]);
 
 // ---------------------------------------------------------------------------

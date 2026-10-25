@@ -8,6 +8,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Console & JES coverage.** MVS operator commands through the z/OSMF Console
+  API using a dynamically activated extended MCS console
+  (`ZOSMF_CONSOLE_NAME`): `issue_console_command` (with follow-up message
+  collection), `get_console_messages` (operations-log tail), `hold_job` /
+  `release_job` (JES2 `$HJ`/`$OJ`), `cancel_job` (z/OSMF jobs API),
+  `get_wlm_status` (`D WLM` displays), `ims_command` (IMS commands via the
+  system console), `get_hsm_activity` (DFSMShsm recall/migration activity
+  filtered from the operations log), and `analyze_logrec` (submits a canned
+  EREP `IFCEREP` report job against LOGREC and summarizes record counts,
+  abend codes, and modules). All command-issuing tools are governed writes.
+- **Batch scheduler integration.** `scheduler_job_status` queries Control-M,
+  CA 7, and IBM Workload Automation through their REST APIs
+  (`SCHEDULER_ADAPTERS` JSON with per-scheduler host/token/path templates and
+  best-effort status normalization). `job_dependencies` analyzes a job's JCL
+  (inline or from spool) into dataset flows — inputs, outputs, updates per
+  step plus PROC references — for predecessor/successor analysis.
+- **Messaging & data coverage.** `mq_queue_status` and `mq_channel_status`
+  via the IBM MQ REST admin API (`MQ_REST_HOST`/`_PORT`/`_USER`/`_PASSWORD`),
+  with queue high-water warnings and non-running channel flagging.
+  `get_volume_space` reads DASD volume space from the z/OSMF Storage
+  Management Interface and flags volumes below `STORAGE_FREE_THRESHOLD`.
+- **CICS statistics and gated actions.** `get_cics_region_stats` (CMCI
+  `CICSRegion` attributes), plus governed-write `cics_newcopy` and
+  `cics_disable_transaction` implemented as CMCI resource actions
+  (CICS TS 5.6+ with actions enabled).
+- **Dump summarization.** `summarize_dump` digests CEEDUMP / SYSMDUMP /
+  SYSUDUMP output — system and user completion codes, failing module and
+  offset, PSW, Language Environment conditions, section inventory, and
+  suggested next steps — from spool or a dataset, without shipping raw hex.
+- **Capacity and MLC cost attribution.** `get_job_capacity` parses per-step
+  and total CPU from JESMSGLG (IEF374I/IEF376I) and estimates MSU consumption
+  from `CAPACITY_MSU_RATING`; `estimate_mlc_cost` attributes MLC cost from
+  CPU/MSU using `MLC_MSU_MONTHLY_PRICE`, with pricing assumptions surfaced in
+  the output.
 - **Multi-environment support.** Define named systems (DEV/TEST/UAT/PROD,
   multiple LPARs/sysplexes) in the policy file or via `ZOSMF_ENVIRONMENTS`
   (JSON); the base `ZOSMF_*` connection remains available as `default`. Every

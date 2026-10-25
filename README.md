@@ -181,6 +181,9 @@ Requires optional CMCI configuration — see [z/OS prerequisites](#zos-prerequis
 | `list_cics_regions` | READ | List CICS regions via CMCI REST |
 | `get_cics_region_status` | READ | Status and attributes of a CICS region |
 | `list_cics_transactions` | READ | Transaction definitions in a region |
+| `get_cics_region_stats` | READ | Region statistics/attributes from the CMCI `CICSRegion` resource |
+| `cics_newcopy` | WRITE | NEWCOPY a program via CMCI action (CICS TS 5.6+) |
+| `cics_disable_transaction` | WRITE | Disable/enable a local transaction via CMCI SET action |
 
 ### Db2
 
@@ -190,6 +193,53 @@ Requires optional Db2 REST configuration — see [z/OS prerequisites](#zos-prere
 |---|---|---|
 | `list_db2_subsystems` | READ | List Db2 locations via Db2 REST |
 | `search_db2_catalog` | READ | Read-only catalog search (tables, views, aliases) |
+
+### Console & JES
+
+Operator commands run through an extended MCS console (`ZOSMF_CONSOLE_NAME`);
+command tools are gated writes subject to read-only mode, policy roles,
+change tickets, and change windows.
+
+| Tool | Type | Description |
+|---|---|---|
+| `issue_console_command` | WRITE | MVS commands (`D A,L`, `D GRS,RES=…`) with follow-up message collection |
+| `get_console_messages` | READ | Operations-log tail (SYSLOG-style console feed) |
+| `hold_job` / `release_job` | WRITE | JES2 `$HJ` / `$OJ` job hold and release |
+| `cancel_job` | WRITE | Cancel a job via the z/OSMF jobs API |
+| `get_wlm_status` | WRITE | `D WLM` display (service policy / resources) |
+| `ims_command` | WRITE | IMS commands via the system console (`/DIS ACTIVE`, `/DIS TRAN …`) |
+| `get_hsm_activity` | READ | DFSMShsm recall/migration activity from the operations log |
+| `analyze_logrec` | WRITE | Submit an EREP report against LOGREC and summarize error records |
+
+### Schedulers
+
+| Tool | Type | Description |
+|---|---|---|
+| `scheduler_job_status` | READ | Control-M / CA 7 / IBM WLS job status via their REST APIs (`SCHEDULER_ADAPTERS`) |
+| `job_dependencies` | READ | JCL dataset-flow analysis — inputs, outputs, updates, PROCs (predecessor/successor material) |
+
+### Messaging (IBM MQ)
+
+Requires `MQ_REST_HOST` (mqweb server) and optional `MQ_REST_PORT`/`_USER`/`_PASSWORD`.
+
+| Tool | Type | Description |
+|---|---|---|
+| `mq_queue_status` | READ | Queue curdepth vs maxdepth with high-water warnings |
+| `mq_channel_status` | READ | Channel status (RUNNING/RETRYING/STOPPED) and connection counts |
+
+### Storage & Capacity
+
+| Tool | Type | Description |
+|---|---|---|
+| `get_volume_space` | READ | DASD volume space via z/OSMF SMI, with low-space alerts (`STORAGE_FREE_THRESHOLD`) |
+| `get_job_capacity` | READ | Per-step and total CPU from JESMSGLG (IEF374I/IEF376I) + MSU estimate (`CAPACITY_MSU_RATING`) |
+| `estimate_mlc_cost` | OFFLINE | MLC cost attribution from CPU/MSU (`MLC_MSU_MONTHLY_PRICE`) |
+
+### Dumps
+
+| Tool | Type | Description |
+|---|---|---|
+| `summarize_dump` | READ | CEEDUMP / SYSMDUMP / SYSUDUMP digest — completion codes, failing module, LE conditions |
 
 ### SMF / Security
 

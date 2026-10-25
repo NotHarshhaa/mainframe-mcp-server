@@ -63,7 +63,18 @@
         "SECURITY_AUDIT_OTLP_URL": "",
         "SECURITY_DATA_PROTECTION": "true",
         "SECURITY_REDACTION_RULES": "",
-        "SECURITY_REDACTION_STYLE": "mask"
+        "SECURITY_REDACTION_STYLE": "mask",
+        "ZOSMF_CONSOLE_NAME": "MCPDYN01",
+        "LOGREC_DATASET": "SYS1.LOGREC",
+        "MQ_REST_HOST": "",
+        "MQ_REST_PORT": "9443",
+        "MQ_REST_USER": "",
+        "MQ_REST_PASSWORD": "",
+        "SCHEDULER_ADAPTERS": "",
+        "CAPACITY_MSU_RATING": "",
+        "MLC_MSU_MONTHLY_PRICE": "",
+        "MLC_CURRENCY": "USD",
+        "STORAGE_FREE_THRESHOLD": "10"
       }
     }
   }

@@ -205,6 +205,40 @@ Requires `CMCI_CONTEXT` (CICSplex name or region APPLID). Optionally set `CMCI_H
 | `region` | string | yes | CICS region APPLID. |
 | `context` | string | no | CMCI context. |
 
+
+### `get_cics_region_stats`
+
+Region attributes and statistics from the CMCI `CICSRegion` resource (uptime,
+status, and other region-level fields your CMCI release provides).
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `region` | string | yes | CICS region APPLID. |
+| `context` | string | no | CMCI context. |
+
+### `cics_newcopy`
+
+NEWCOPY a CICS program via a CMCI resource action — **gated write**. Requires
+CMCI with actions enabled (CICS TS 5.6+).
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `region` | string | yes | CICS region APPLID. |
+| `program` | string | yes | Program name (1–8 chars). |
+| `context` | string | no | CMCI context. |
+
+### `cics_disable_transaction`
+
+Disable (or re-enable with `enable: true`) a CICS local transaction via a CMCI
+SET action — **gated write**. New attaches are refused; in-flight tasks finish.
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `region` | string | yes | CICS region APPLID. |
+| `transaction` | string | yes | Transaction id (1–4 chars). |
+| `enable` | boolean | no | `true` = enable instead of disable (default false). |
+| `context` | string | no | CMCI context. |
+
 ---
 
 ## Db2 Tools (Db2 REST)
@@ -270,6 +304,207 @@ AI-assisted deep analysis (structured for LLM consumption; no external AI API).
 **Output:** risk-ranked jobs with scores, abend patterns, trends, and recommendations.
 
 ---
+
+---
+
+---
+
+## Console & JES Tools
+
+Operator commands run through the z/OSMF Console API using a dynamically
+activated extended MCS console (`ZOSMF_CONSOLE_NAME`, default `MCPDYN01`;
+requires CONSOLE authority for the z/OSMF identity). Every command-issuing
+tool is a **gated write** — blocked by `SECURITY_READ_ONLY`, subject to policy
+role gates, change tickets, and change windows.
+
+### `issue_console_command`
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `command` | string | yes | MVS command, e.g. `D A,L`, `D GRS,RES=(*,SYS1.PROCLIB)`. |
+| `consoleName` | string | no | Console name (default `ZOSMF_CONSOLE_NAME`). |
+| `collectKey` | string | no | Response key from a previous call — collects follow-up messages. |
+
+### `get_console_messages`
+
+Operations-log tail (unsolicited console messages — SYSLOG-style feed).
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `consoleName` | string | no | Console name. |
+| `maxLines` | integer | no | Line cap (default 200). |
+
+### `hold_job` / `release_job`
+
+JES2 `$HJ` / `$OJ` commands via the console (gated writes).
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `jobId` | string | yes | JES job id, e.g. `JOB01234`. |
+| `consoleName` | string | no | Console name. |
+
+### `cancel_job`
+
+Cancels a job via the z/OSMF jobs API (gated write).
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `jobId` | string | yes | JES job id. |
+
+### `get_wlm_status`
+
+WLM display via `D WLM` (gated write — a console command is issued).
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `command` | string | no | WLM display command (default `D WLM`), e.g. `D WLM,SYSTEMS`. |
+| `consoleName` | string | no | Console name. |
+
+### `ims_command`
+
+IMS commands via the z/OS system console (gated write) — commands are prefixed
+with `/`, e.g. `/DIS ACTIVE`, `/DIS TRAN TRAN1`.
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `command` | string | yes | IMS command (leading `/` added if missing). |
+| `consoleName` | string | no | Console name. |
+| `collectKey` | string | no | Collects follow-up messages. |
+
+### `get_hsm_activity`
+
+Recent DFSMShsm activity (recalls, migrations, backups) filtered from the
+operations-log tail. This reflects console traffic only — for full queue state
+use `HSEND` from TSO.
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `consoleName` | string | no | Console name. |
+| `maxLines` | integer | no | Cap (default 50). |
+
+### `analyze_logrec`
+
+Submits a canned EREP (`IFCEREP`) report job against the LOGREC dataset, waits
+for completion, and summarizes the record-count table, abend codes, and
+modules (gated write: submits a batch job).
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `logrecDataset` | string | no | Default `LOGREC_DATASET` (typically `SYS1.LOGREC`). |
+| `report` | enum | no | `SUMMARY` (default) or `HISTORY`. |
+| `waitSeconds` | integer | no | How long to wait for the EREP job (default 60). |
+
+---
+
+## Scheduler Tools
+
+### `scheduler_job_status`
+
+Queries external batch schedulers (Control-M, CA 7, IBM Workload Automation)
+via their REST APIs. Configure endpoints with `SCHEDULER_ADAPTERS` (JSON):
+`[{"name":"controlm","type":"controlm","host":"https://ctm.example.com:8443","token":"..."}]`.
+Default path templates per type (override `jobStatusPath` for your version):
+controlm → `/config/jobs?jobName={jobName}`, ca7 → `/ca7/api/v2/jobs?jobName={jobName}`,
+iws → `/twsz/plan/current/jobs?jobName={jobName}`. Responses are passed
+through with a best-effort normalized status.
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `scheduler` | string | no | Scheduler name from `SCHEDULER_ADAPTERS` (required when several are configured). |
+| `jobName` | string | yes | Scheduler job name. |
+
+### `job_dependencies`
+
+Analyzes a job's JCL for batch dependencies: dataset inputs (`DISP=SHR`),
+updates (`DISP=OLD`), outputs (`NEW`/`MOD`) per step, and PROCs invoked —
+the raw material for predecessor/successor analysis. PROCs are not expanded.
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `jobId` | string | one of | JES job id — JCL is pulled from spool. |
+| `jcl` | string | one of | Inline JCL text. |
+
+---
+
+## MQ Tools (MQ REST)
+
+Requires `MQ_REST_HOST` (mqweb server) and optionally `MQ_REST_PORT` (default
+9443), `MQ_REST_USER`, `MQ_REST_PASSWORD`.
+
+### `mq_queue_status`
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `qmgr` | string | yes | Queue manager name. |
+| `queues` | string | yes | Comma-separated queue names. |
+
+**Output:** curdepth/maxdepth and percent-full per queue, with a warning at ≥80%.
+
+### `mq_channel_status`
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `qmgr` | string | yes | Queue manager name. |
+| `channel` | string | no | Channel name filter (default: all channels). |
+
+**Output:** channel status (RUNNING/RETRYING/STOPPED), type, transmission queue, connection count.
+
+---
+
+## Storage Tools
+
+### `get_volume_space`
+
+DASD volume space inventory via the z/OSMF Storage Management Interface
+(z/OSMF 2.4+). Volumes below `STORAGE_FREE_THRESHOLD` (percent free, default
+10) are flagged as alerts.
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `volser` | string | no | Volume serial (default: all volumes). |
+
+---
+
+## Capacity & Cost Tools
+
+### `get_job_capacity`
+
+Per-step and job-total CPU parsed from the job's JESMSGLG (IEF374I/IEF376I),
+with an MSU estimate when `CAPACITY_MSU_RATING` (LPAR MSU/hour) is configured.
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `jobId` | string | yes | JES job id. |
+
+### `estimate_mlc_cost`
+
+MLC cost attribution: MSU ≈ CPU hours × LPAR capacity; cost = MSU ×
+(`MLC_MSU_MONTHLY_PRICE` converted to a per-MSU-hour rate). Assumptions are
+listed in the output — peak/4HRA contracts price differently.
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `jobId` | string | one of | JES job id — CPU read from JESMSGLG. |
+| `cpuSeconds` | number | one of | Explicit CPU seconds (needs `CAPACITY_MSU_RATING`). |
+| `msuConsumed` | number | one of | Explicit MSU (no capacity needed). |
+
+---
+
+## Dump Tools
+
+### `summarize_dump`
+
+Summarizes CEEDUMP / SYSMDUMP / SYSUDUMP output: system and user completion
+codes, failing module and offset, PSW, Language Environment conditions, and
+the section inventory — from spool or a dataset. For SVC dumps (binary),
+use IPCS; text dumps only.
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `jobId` | string | one of | JES job id when the dump is in spool. |
+| `ddName` | string | no | Spool DD (default: first of SYSUDUMP/SYSMDUMP/CEEDUMP/SYSABEND). |
+| `dsn` | string | one of | Dataset containing the dump. |
+| `member` | string | no | PDS member when `dsn` is a library. |
 
 ---
 

@@ -58,6 +58,7 @@
     "@modelcontextprotocol/sdk": "^1.10.0",
     "@zowe/core-for-zowe-sdk": "^8.0.0",
     "@zowe/imperative": "^8.0.0",
+    "@zowe/zos-console-for-zowe-sdk": "^8.41.0",
     "@zowe/zos-files-for-zowe-sdk": "^8.0.0",
     "@zowe/zos-jobs-for-zowe-sdk": "^8.0.0",
     "@zowe/zosmf-for-zowe-sdk": "^8.0.0",
