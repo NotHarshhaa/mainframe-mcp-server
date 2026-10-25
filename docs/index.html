@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Enterprise MCP server for IBM z/OS — jobs, datasets, USS, CICS, Db2, and operational diagnostics via Zowe SDK.">
   <title>mainframe-mcp-server — MCP for IBM z/OS</title>
+  <meta name="theme-color" content="#05080f">
   <script>
     (function () {
       var stored = localStorage.getItem('mainframe-mcp-theme');
@@ -13,14 +14,22 @@
       document.documentElement.setAttribute('data-theme', theme);
     })();
   </script>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
   <header class="site-header">
+    <div class="header-strip">
+      <span class="strip-item strip-status"><span class="pulse" aria-hidden="true"></span>sys · mainframe-mcp · online</span>
+      <span class="strip-item strip-meta">z/OSMF REST · <a href="https://www.npmjs.com/package/@notharshhaa/mainframe-mcp-server">npm v2.5.0</a></span>
+    </div>
     <div class="header-bar">
       <a class="logo" href="#top">
-        <span class="logo-icon">z/OS</span>
-        <span class="logo-text">mainframe-mcp-server</span>
+        <img class="logo-mark" src="assets/logo.svg" alt="" width="34" height="34">
+        <span class="logo-text">mainframe<span class="logo-accent">-mcp-server</span></span>
       </a>
       <button type="button" class="nav-menu-toggle" id="nav-menu-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Open menu">
         <svg class="icon-menu" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -60,36 +69,51 @@
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
           </button>
-          <a class="nav-cta" href="https://github.com/NotHarshhaa/mainframe-mcp-server">GitHub</a>
+          <a class="nav-cta" href="https://github.com/NotHarshhaa/mainframe-mcp-server">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.31.76-1.61-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.65 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.81 5.63-5.49 5.92.43.38.82 1.11.82 2.24l-.01 3.32c0 .32.21.7.83.58A12 12 0 0 0 12 .3z"/>
+            </svg>
+            GitHub
+          </a>
         </div>
       </nav>
     </div>
+    <div class="scroll-progress" aria-hidden="true"><span></span></div>
     <div class="nav-backdrop" id="nav-backdrop" hidden aria-hidden="true"></div>
   </header>
 
   <div id="top" class="hero">
-    <div class="hero-badges">
-      <span class="badge badge-green">MCP · stdio</span>
-      <span class="badge badge-blue">Zowe SDK</span>
-      <span class="badge badge-purple">TypeScript</span>
-      <span class="badge">MIT License</span>
-    </div>
-    <h1><span>AI agents</span> meet IBM z/OS</h1>
-    <p class="hero-lead">
-      An enterprise-grade Model Context Protocol server that exposes jobs, datasets, USS,
-      CICS, Db2, and operational diagnostics to Cursor, VS Code, and other MCP clients —
-      over z/OSMF REST via the Zowe SDK (Open Mainframe Project).
-    </p>
-    <img class="hero-banner" src="assets/banner.png" alt="Bridge AI agents with IBM z/OS via MCP and Zowe SDK" width="900" height="auto">
-    <div class="hero-actions">
-      <a class="btn btn-primary" href="#setup">Get started</a>
-      <a class="btn btn-secondary" href="https://www.npmjs.com/package/@notharshhaa/mainframe-mcp-server">npm package</a>
-      <a class="btn btn-secondary" href="https://github.com/NotHarshhaa/mainframe-mcp-server">View source</a>
+    <div class="hero-inner">
+      <p class="hero-status"><span class="pulse" aria-hidden="true"></span>mainframe-mcp-server · v2.5.0 · stable</p>
+      <h1>AI agents meet <span class="grad">IBM z/OS</span></h1>
+      <p class="hero-lead">
+        An enterprise-grade Model Context Protocol server that exposes <strong>jobs, datasets, USS,
+        CICS, Db2, and operational diagnostics</strong> to Cursor, VS Code, and other MCP clients —
+        over z/OSMF REST via the Zowe SDK (Open Mainframe Project).
+      </p>
+      <div class="hero-badges">
+        <span class="badge badge-green">MCP · stdio + HTTP+SSE</span>
+        <span class="badge badge-blue">Zowe SDK</span>
+        <span class="badge badge-purple">TypeScript 5</span>
+        <span class="badge">MIT License</span>
+      </div>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#setup">Get started</a>
+        <a class="btn btn-secondary" href="https://www.npmjs.com/package/@notharshhaa/mainframe-mcp-server">npm package</a>
+        <a class="btn btn-secondary" href="https://github.com/NotHarshhaa/mainframe-mcp-server">View source</a>
+      </div>
+      <img class="hero-banner" src="assets/banner.png" alt="Bridge AI agents with IBM z/OS via MCP and Zowe SDK" width="900" height="auto">
+      <div class="hero-meta">
+        <div><span class="num">30+</span><span class="lbl">MCP tools</span></div>
+        <div><span class="num">9</span><span class="lbl">Domains</span></div>
+        <div><span class="num">2</span><span class="lbl">Transports</span></div>
+        <div><span class="num">100%</span><span class="lbl">Read-only capable</span></div>
+      </div>
     </div>
   </div>
 
   <main>
-    <section id="about">
+    <section id="about" data-kicker="01 · About">
       <h2>What it does</h2>
       <p class="section-intro">
         <code>mainframe-mcp-server</code> turns z/OS capabilities into MCP tools an AI agent can call.
@@ -116,7 +140,7 @@
       </div>
     </section>
 
-    <section id="compare">
+    <section id="compare" data-kicker="02 · Positioning">
       <h2>How it's different</h2>
       <p class="section-intro">
         This server fills a gap cloud-native MCP tools cannot: governed, structured access to the mainframe for AI workflows.
@@ -179,7 +203,7 @@
       </div>
     </section>
 
-    <section id="features">
+    <section id="features" data-kicker="03 · Capabilities">
       <h2>Features</h2>
       <p class="section-intro">Organized into core tooling, operational intelligence, optional enterprise integrations, and security controls.</p>
       <div class="card-grid">
@@ -202,7 +226,7 @@
       </div>
     </section>
 
-    <section id="tools">
+    <section id="tools" data-kicker="04 · Tooling">
       <h2>Tools reference</h2>
       <p class="section-intro">
         Full input/output details:
@@ -272,7 +296,7 @@
       </div>
     </section>
 
-    <section id="setup">
+    <section id="setup" data-kicker="05 · Setup">
       <h2>Setup instructions</h2>
       <p class="section-intro">
         <strong>Requirements:</strong> Node.js 18+, reachable z/OSMF endpoint, valid z/OS credentials (user/password or token).
@@ -378,7 +402,7 @@ npm test          # unit tests, no mainframe required</pre>
       </p>
     </section>
 
-    <section id="enterprise">
+    <section id="enterprise" data-kicker="06 · Governance">
       <h2>Enterprise deployment</h2>
       <p class="section-intro">Security controls enforced at the MCP server layer — in addition to RACF and z/OSMF permissions.</p>
       <p class="table-scroll-hint">Swipe horizontally to see all columns →</p>
@@ -405,7 +429,7 @@ npm test          # unit tests, no mainframe required</pre>
       </div>
     </section>
 
-    <section id="examples">
+    <section id="examples" data-kicker="07 · In action">
       <h2>Examples</h2>
       <p class="section-intro">Natural-language prompts map to MCP tool calls with structured responses.</p>
 
@@ -449,5 +473,6 @@ Fix:     Verify PAYRPTX is compiled and linked into the correct load library.</p
   </footer>
   <script src="assets/theme.js"></script>
   <script src="assets/nav.js"></script>
+  <script src="assets/header.js"></script>
 </body>
 </html>
