@@ -2,8 +2,8 @@ apiVersion: v2
 name: mainframe-mcp-server
 description: Enterprise MCP server for IBM z/OS — jobs, datasets, USS, CICS, Db2, console, schedulers, MQ — via the Zowe SDK, with multi-environment policy-as-code, RBAC, SIEM audit, and data protection.
 type: application
-version: 0.1.0
-appVersion: "2.8.0"
+version: 0.2.0
+appVersion: "3.0.0"
 home: https://github.com/NotHarshhaa/mainframe-mcp-server
 sources:
   - https://github.com/NotHarshhaa/mainframe-mcp-server
@@ -18,4 +18,4 @@ maintainers:
 annotations:
   artifacthub.io/images: |
     - name: mainframe-mcp-server
-      image: ghcr.io/notharshhaa/mainframe-mcp-server:2.8.0
+      image: ghcr.io/notharshhaa/mainframe-mcp-server:3.0.0

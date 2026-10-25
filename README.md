@@ -285,7 +285,7 @@ Everything a security team asks for on day one is built into the release pipelin
 Verify the image before you run it:
 
 ```bash
-cosign verify ghcr.io/notharshhaa/mainframe-mcp-server:2.8.0 \
+cosign verify ghcr.io/notharshhaa/mainframe-mcp-server:3.0.0 \
   --certificate-identity-regexp 'https://github.com/NotHarshhaa/mainframe-mcp-server/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```

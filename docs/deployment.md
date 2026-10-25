@@ -167,7 +167,7 @@ Security teams can verify every artifact before trusting it:
 ### Official container image
 
 Releases publish `ghcr.io/notharshhaa/mainframe-mcp-server` with tags for the
-exact version (`2.8.0`), minor line (`2.8`), and the git SHA. The image is
+exact version (`3.0.0`), minor line (`2.8`), and the git SHA. The image is
 non-root, and the compose file/Helm chart run it read-only with all
 capabilities dropped.
 
@@ -176,7 +176,7 @@ capabilities dropped.
 Every image is signed in CI with cosign (keyless, Workload Identity):
 
 ```bash
-cosign verify ghcr.io/notharshhaa/mainframe-mcp-server:2.8.0 \n  --certificate-identity-regexp 'https://github.com/NotHarshhaa/mainframe-mcp-server/.github/workflows/release.yml/tags/v' \n  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+cosign verify ghcr.io/notharshhaa/mainframe-mcp-server:3.0.0 \n  --certificate-identity-regexp 'https://github.com/NotHarshhaa/mainframe-mcp-server/.github/workflows/release.yml/tags/v' \n  --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
 Release SBOMs and checksum files are signed the same way (`cosign sign-blob`);
@@ -191,7 +191,7 @@ tooling (Grype, Trivy, Dependency-Track, …). BuildKit also attaches in-toto
 attestations (provenance `mode=max` + SBOM) to the image itself:
 
 ```bash
-docker buildx imagetools inspect ghcr.io/notharshhaa/mainframe-mcp-server:2.8.0
+docker buildx imagetools inspect ghcr.io/notharshhaa/mainframe-mcp-server:3.0.0
 ```
 
 ### npm provenance
