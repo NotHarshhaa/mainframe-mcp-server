@@ -221,7 +221,15 @@
         </div>
         <div class="card">
           <h3>Security layer</h3>
-          <p>Read-only mode, tool allow/block lists, dataset &amp; USS boundaries, audit logging, JCL size caps — enforced at the MCP server in addition to RACF.</p>
+          <p>Read-only by default, tool allow/block lists, dataset &amp; USS boundaries, audit logging, JCL size caps — enforced at the MCP server in addition to RACF.</p>
+        </div>
+        <div class="card">
+          <h3>Per-user identity</h3>
+          <p>PassTicket propagation so RACF sees who asked — not the service account. Plus mTLS client certificates, JWT/APIML (SSO) tokens, and Zowe team config import.</p>
+        </div>
+        <div class="card">
+          <h3>Governed writes</h3>
+          <p>JCL pre-flight scan (IDCAMS DELETE, IEFBR14 DISP deletes, blocked utilities), change-ticket enforcement, change windows, dry-run, and human-in-the-loop approval.</p>
         </div>
       </div>
     </section>
@@ -239,7 +247,8 @@
           <div class="tool-item"><code>list_jobs</code><span>List jobs by owner, prefix, or status</span></div>
           <div class="tool-item"><code>get_job_status</code><span>Status and return code for a job</span></div>
           <div class="tool-item"><code>get_job_output</code><span>Spool inventory or DD content</span></div>
-          <div class="tool-item"><code>submit_jcl</code><span>Submit inline JCL (blocked in read-only mode)</span></div>
+          <div class="tool-item"><code>submit_jcl</code><span>Submit inline JCL — pre-flight scan, change ticket, change window, dry-run &amp; approval</span></div>
+          <div class="tool-item"><code>approve_write</code><span>Execute a pending JCL submission after human review (one-time token)</span></div>
           <div class="tool-item"><code>analyze_job_failure</code><span>Abend code, failing step, suggested fix</span></div>
           <div class="tool-item"><code>get_job_jcl</code><span>Retrieve submitted JCL from job spool</span></div>
         </div>
@@ -387,7 +396,10 @@ npm test          # unit tests, no mainframe required</pre>
             <tr><td><code>ZOSMF_TOKEN</code></td><td>Yes*</td><td>Token auth — recommended over basic credentials</td></tr>
             <tr><td><code>ZOSMF_USER</code> / <code>ZOSMF_PASSWORD</code></td><td>Yes*</td><td>Basic auth — alternative to token auth</td></tr>
             <tr><td><code>ZOSMF_PORT</code></td><td>No</td><td>HTTPS port (default <code>443</code>)</td></tr>
-            <tr><td><code>ZOSMF_BASE_PATH</code></td><td>No</td><td>API gateway prefix if applicable</td></tr>
+            <tr><td><code>ZOSMF_BASE_PATH</code></td><td>No</td><td>API gateway / APIML prefix if applicable</td></tr>
+            <tr><td><code>ZOSMF_USER_ID</code></td><td>No</td><td>End-user id for PassTicket identity propagation — RACF sees who asked</td></tr>
+            <tr><td><code>ZOSMF_CERT</code> / <code>ZOSMF_CERT_KEY</code></td><td>No</td><td>mTLS client certificate (PEM) — alternative to token auth</td></tr>
+            <tr><td><code>ZOWE_TEAM_CONFIG</code></td><td>No</td><td>Import connection settings from a Zowe team config profile</td></tr>
             <tr><td><code>ZOSMF_REJECT_UNAUTHORIZED</code></td><td>No</td><td>TLS verification (default <code>true</code>)</td></tr>
           </tbody>
         </table>
@@ -404,15 +416,40 @@ npm test          # unit tests, no mainframe required</pre>
 
     <section id="enterprise" data-kicker="06 · Governance">
       <h2>Enterprise deployment</h2>
-      <p class="section-intro">Security controls enforced at the MCP server layer — in addition to RACF and z/OSMF permissions.</p>
+      <p class="section-intro">Security and governance enforced at the MCP server layer — in addition to RACF and z/OSMF permissions.</p>
+
+      <h3 style="margin-top:1.5rem;font-size:1.15rem;">Per-user identity — RACF sees who asked</h3>
+      <p class="section-intro">Four mechanisms replace the shared service account. CICS and Db2 REST calls keep the service identity; z/OSMF tool calls run as the end user.</p>
       <p class="table-scroll-hint">Swipe horizontally to see all columns →</p>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Control</th><th>Variable</th><th>Purpose</th></tr>
+            <tr><th>Mechanism</th><th>Setup</th><th>Notes</th></tr>
           </thead>
           <tbody>
-            <tr><td>Read-only mode</td><td><code>SECURITY_READ_ONLY=true</code></td><td>Blocks <code>submit_jcl</code> and write tools (default <code>true</code>)</td></tr>
+            <tr><td>PassTicket propagation</td><td><code>ZOSMF_USER_ID</code> · <code>ZOSMF_PASSTICKET_APP</code></td><td>Server generates z/OSMF PassTickets for the end user; every z/OSMF call runs under that identity. 8-minute cache, auto-renewed. Requires PTKTDATA setup.</td></tr>
+            <tr><td>mTLS client certificate</td><td><code>ZOSMF_CERT</code> · <code>ZOSMF_CERT_KEY</code></td><td>PEM files; pairs with RACF IDID certificate-to-user mapping.</td></tr>
+            <tr><td>JWT / APIML (SSO)</td><td><code>ZOSMF_TOKEN_TYPE=APIML</code> or <code>JWT</code></td><td>Sent as <code>Authorization: Bearer</code>. Issue via your IdP/gateway; inject with <code>ZOSMF_TOKEN_FILE</code> for refreshable vault tokens.</td></tr>
+            <tr><td>Zowe team config import</td><td><code>ZOWE_TEAM_CONFIG</code> · <code>ZOSMF_PROFILE</code></td><td>Reuse existing Zowe profiles; <code>@secure</code> values honored when stored in the file. Env vars always win.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top:2rem;font-size:1.15rem;">Governed writes</h3>
+      <p class="section-intro">Every gate is independent and operator-controlled — the agent cannot turn any of them off.</p>
+      <p class="table-scroll-hint">Swipe horizontally to see all columns →</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Gate</th><th>Variable</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Read-only mode</td><td><code>SECURITY_READ_ONLY=true</code></td><td>Blocks <code>submit_jcl</code>, <code>approve_write</code>, and write tools (default <code>true</code>)</td></tr>
+            <tr><td>Pre-flight JCL scan</td><td><code>SECURITY_JCL_SCAN=true</code></td><td>Blocks IDCAMS <code>DELETE</code>, IEFBR14 <code>DISP=(…,DELETE)</code>, blocked utilities, restricted classes (default on)</td></tr>
+            <tr><td>Blocked programs / classes</td><td><code>SECURITY_BLOCKED_PROGRAMS</code> · <code>SECURITY_BLOCKED_JOB_CLASSES</code></td><td>Extend the deny list (ADRDSSU, ICKDSF, IEHINITT built in)</td></tr>
+            <tr><td>Change ticket</td><td><code>SECURITY_CHANGE_TICKET_PATTERN</code></td><td>Writes must carry a matching ticket ID, e.g. <code>CHG[0-9]{6}</code></td></tr>
+            <tr><td>Change window</td><td><code>SECURITY_WRITE_WINDOW</code> + days + timezone</td><td>No PROD submits outside approved hours (overnight windows supported)</td></tr>
+            <tr><td>Human approval</td><td><code>SECURITY_WRITE_APPROVAL=true</code></td><td><code>submit_jcl</code> returns a one-time token; <code>approve_write</code> executes after human review</td></tr>
             <tr><td>Tool allowlist</td><td><code>SECURITY_ALLOWED_TOOLS</code></td><td>Least-privilege tool access</td></tr>
             <tr><td>Tool blocklist</td><td><code>SECURITY_BLOCKED_TOOLS</code></td><td>Explicitly deny tools</td></tr>
             <tr><td>Dataset boundaries</td><td><code>SECURITY_ALLOWED_DATASET_PATTERNS</code></td><td>Restrict HLQ patterns</td></tr>
@@ -422,10 +459,14 @@ npm test          # unit tests, no mainframe required</pre>
           </tbody>
         </table>
       </div>
+      <div class="callout callout-info">
+        <strong>Dry-run:</strong> <code>submit_jcl({ dryRun: true })</code> runs structure checks and the pre-flight scan and reports
+        exactly what a real submission would do — without enforcing gates and without touching JES.
+      </div>
       <div class="callout callout-warning">
-        <strong>Pilot checklist:</strong> dedicated service account · secrets in vault · VPN/network to z/OSMF ·
+        <strong>Pilot checklist:</strong> dedicated service account · PassTicket/PTKTDATA setup for end-user identity · secrets in vault · VPN/network to z/OSMF ·
         <code>verify_zosmf_connection</code> · <code>security_posture_summary</code> · start with
-        <code>SECURITY_READ_ONLY=true</code>.
+        <code>SECURITY_READ_ONLY=true</code> and <code>SECURITY_JCL_SCAN=true</code>.
       </div>
     </section>
 
