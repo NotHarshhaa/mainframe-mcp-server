@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { formatContentHeader, textResult, truncateLines } from '../../utils/formatters.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { assertValidJobId, fetchJob, fetchSpoolContent, fetchSpoolFiles, normalizeJobId } from './shared.js';
 
 /**
@@ -15,10 +15,7 @@ import { assertValidJobId, fetchJob, fetchSpoolContent, fetchSpoolFiles, normali
 const JCL_DDS = ['JESJCLIN', 'JESJCL', 'JCL', 'SYSIN'];
 
 export const registerGetJobJclTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'get_job_jcl',
-    'Retrieve the JCL that was submitted for a job (from JESJCLIN / JESJCL / JCL spool DDs). Supports custom line limit.',
-    {
+  defineTool(server, ctx, 'get_job_jcl', 'Retrieve the JCL that was submitted for a job (from JESJCLIN / JESJCL / JCL spool DDs). Supports custom line limit.', {
       jobId: z.string().min(1).describe('JES job id, e.g. "JOB01234".'),
       maxLines: z
         .number()
@@ -26,8 +23,7 @@ export const registerGetJobJclTool: ToolRegistrar = (server, ctx) => {
         .positive()
         .optional()
         .describe('Maximum lines to return (caps at server configuration maximum).'),
-    },
-    securedHandler(ctx, 'get_job_jcl', async ({ jobId, maxLines }) => {
+    }, async ({ jobId, maxLines }) => {
       assertValidJobId(jobId);
       const normalizedId = normalizeJobId(jobId);
 
@@ -60,6 +56,5 @@ export const registerGetJobJclTool: ToolRegistrar = (server, ctx) => {
         cap,
       );
       return textResult(header + text);
-    }),
-  );
+    });
 };

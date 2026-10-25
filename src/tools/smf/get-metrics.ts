@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { ConfigError } from '../../utils/errors.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { fetchSmfMetrics } from './shared.js';
 
@@ -18,11 +18,7 @@ const inputShape = {
 };
 
 export const registerSmfMetricsTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'get_smf_metrics',
-    'Retrieve SMF/RMF performance metrics from z/OSMF RMF and/or a configured SMF summary dataset. Supports category filtering.',
-    inputShape,
-    securedHandler(ctx, 'get_smf_metrics', async ({ category }) => {
+  defineTool(server, ctx, 'get_smf_metrics', 'Retrieve SMF/RMF performance metrics from z/OSMF RMF and/or a configured SMF summary dataset. Supports category filtering.', inputShape, async ({ category }) => {
       const { rmfMetricsEnabled, smfSummaryDataset } = ctx.config.enterprise;
       if (!rmfMetricsEnabled && !smfSummaryDataset) {
         throw new ConfigError(
@@ -60,6 +56,5 @@ export const registerSmfMetricsTool: ToolRegistrar = (server, ctx) => {
           { heading: 'Performance snapshot', body: `${sourceNote}${categoryNote}\n\n${table}` },
         ]),
       );
-    }),
-  );
+    });
 };

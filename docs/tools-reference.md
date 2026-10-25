@@ -271,6 +271,40 @@ AI-assisted deep analysis (structured for LLM consumption; no external AI API).
 
 ---
 
+---
+
+## Governance Tools
+
+These tools expose the enterprise control plane (multi-environment,
+policy-as-code, audit, data protection — see
+[docs/enterprise.md](enterprise.md)). Like every other tool, they accept an
+optional `environment` argument.
+
+### `list_environments`
+
+No inputs.
+
+**Output:** table of named z/OS environments with description, z/OSMF
+endpoint, read-only status, auth method, and allowed roles. The default
+environment is marked with `*`. When no environments are configured, the
+output explains how to enable multi-environment support
+(`SECURITY_POLICY_FILE` or `ZOSMF_ENVIRONMENTS`).
+
+### `whoami`
+
+No inputs.
+
+**Output:** structured report of the acting session:
+
+1. **Identity** — user, resolved role, policy source.
+2. **Environment** — active and available environments, write status.
+3. **Permissions** — write operations, tool allow/deny lists, dataset and USS
+   patterns, change-ticket requirement, read line cap.
+4. **Data protection** — masking status, active rules, style, classification
+   count.
+
+Use it to verify RBAC wiring before granting broader access.
+
 ## Error Codes
 
 | Code | Meaning |

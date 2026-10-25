@@ -12,7 +12,7 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { lookupAbend, searchAbendCodes } from '../../utils/abend-codes.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import {
   formatAbendCatalog,
   formatAbendInfo,
@@ -44,11 +44,7 @@ const inputShape = {
 };
 
 export const registerLookupAbendTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'lookup_abend_code',
-    'Look up z/OS abend codes (S0C7, S806, S0C4, S322, S0CB, U4038, etc.) with explanations, common causes, and remediation steps. Supports catalog search and category filter.',
-    inputShape,
-    securedHandler(ctx, 'lookup_abend_code', async ({ code, search, category }) => {
+  defineTool(server, ctx, 'lookup_abend_code', 'Look up z/OS abend codes (S0C7, S806, S0C4, S322, S0CB, U4038, etc.) with explanations, common causes, and remediation steps. Supports catalog search and category filter.', inputShape, async ({ code, search, category }) => {
       if (code) {
         const info = lookupAbend(code);
         if (!info) {
@@ -87,6 +83,5 @@ export const registerLookupAbendTool: ToolRegistrar = (server, ctx) => {
 
       ctx.logger.debug({ search, category, count: catalog.length }, 'lookup_abend_code');
       return textResult(formatAbendCatalog(catalog));
-    }),
-  );
+    });
 };

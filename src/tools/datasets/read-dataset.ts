@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { formatContentHeader, textResult, truncateLines } from '../../utils/formatters.js';
 import { assertDatasetAllowed } from '../../utils/security.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { assertValidMemberName, normalizeDatasetName, readDataset } from './shared.js';
 
 const inputShape = {
@@ -27,14 +27,7 @@ const inputShape = {
 };
 
 export const registerReadDatasetTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'read_dataset',
-    'Read the content of a sequential dataset or a PDS member (output is line-capped). Supports custom line limits and EBCDIC encoding hints.',
-    inputShape,
-    securedHandler(
-      ctx,
-      'read_dataset',
-      async ({ dsn, member, maxLines, encoding }) => {
+  defineTool(server, ctx, 'read_dataset', 'Read the content of a sequential dataset or a PDS member (output is line-capped). Supports custom line limits and EBCDIC encoding hints.', inputShape, async ({ dsn, member, maxLines, encoding }) => {
         const normalizedDsn = normalizeDatasetName(dsn);
 
         // Validate member name if provided
@@ -61,8 +54,5 @@ export const registerReadDatasetTool: ToolRegistrar = (server, ctx) => {
           cap,
         );
         return textResult(header + text);
-      },
-      ({ dsn }) => ({ dataset: dsn }),
-    ),
-  );
+      }, ({ dsn }) => ({ dataset: dsn }));
 };

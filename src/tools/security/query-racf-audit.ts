@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { queryRacfAudit } from './shared.js';
 
@@ -43,11 +43,7 @@ const inputShape = {
 };
 
 export const registerQueryRacfAuditTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'query_racf_audit',
-    'Query RACF security audit records from a configured USS path or dataset. Supports user, resource, event, result, class, and time-window filters.',
-    inputShape,
-    securedHandler(ctx, 'query_racf_audit', async ({ user, resource, event, result, class: cls, hours, maxResults }) => {
+  defineTool(server, ctx, 'query_racf_audit', 'Query RACF security audit records from a configured USS path or dataset. Supports user, resource, event, result, class, and time-window filters.', inputShape, async ({ user, resource, event, result, class: cls, hours, maxResults }) => {
       const limit = maxResults ?? 100;
       const entries = await queryRacfAudit(ctx, { user, resource, hours, event, result, class: cls }, limit);
 
@@ -84,6 +80,5 @@ export const registerQueryRacfAuditTool: ToolRegistrar = (server, ctx) => {
           },
         ]),
       );
-    }),
-  );
+    });
 };

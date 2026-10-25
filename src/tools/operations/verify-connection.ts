@@ -5,16 +5,12 @@ import type { ToolRegistrar } from '../../types/tools.js';
 import { GetJobs } from '@zowe/zos-jobs-for-zowe-sdk';
 import { getJson } from '../../zowe/rest-client.js';
 import { formatStructuredResponse, textResult } from '../../utils/formatters.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { describeConnection } from '../../zowe/profiles.js';
 import { effectiveSession } from '../../zowe/enduser.js';
 
 export const registerVerifyConnectionTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'verify_zosmf_connection',
-    'Verify z/OSMF connectivity, authentication, and basic API availability.',
-    {},
-    securedHandler(ctx, 'verify_zosmf_connection', async () => {
+  defineTool(server, ctx, 'verify_zosmf_connection', 'Verify z/OSMF connectivity, authentication, and basic API availability.', {}, async () => {
       const owner = ctx.config.zosmf.user ?? '*';
       const jobs = await GetJobs.getJobsByOwnerAndPrefix(await effectiveSession(ctx), owner, '*');
 
@@ -46,6 +42,5 @@ export const registerVerifyConnectionTool: ToolRegistrar = (server, ctx) => {
           { heading: 'Status — OK', body },
         ]),
       );
-    }),
-  );
+    });
 };

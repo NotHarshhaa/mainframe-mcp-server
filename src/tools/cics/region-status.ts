@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { textResult } from '../../utils/formatters.js';
 import { assertValidApplid, getCicsRegion, normalizeApplid } from './shared.js';
 
@@ -13,11 +13,7 @@ const inputShape = {
 };
 
 export const registerGetCicsRegionTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'get_cics_region_status',
-    'Get the current status, version, and attributes of a CICS region via CMCI.',
-    inputShape,
-    securedHandler(ctx, 'get_cics_region_status', async ({ region, context }) => {
+  defineTool(server, ctx, 'get_cics_region_status', 'Get the current status, version, and attributes of a CICS region via CMCI.', inputShape, async ({ region, context }) => {
       assertValidApplid(region);
       const applid = normalizeApplid(region);
 
@@ -36,6 +32,5 @@ export const registerGetCicsRegionTool: ToolRegistrar = (server, ctx) => {
       ];
 
       return textResult(lines.join('\n'));
-    }),
-  );
+    });
 };

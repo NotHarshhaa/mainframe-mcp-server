@@ -6,7 +6,7 @@ import type { ToolRegistrar } from '../../types/tools.js';
 import { formatMemberList, textResult } from '../../utils/formatters.js';
 import { globToRegExp } from '../../utils/glob.js';
 import { assertDatasetAllowed } from '../../utils/security.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { listMembers, listMembersWithStats, normalizeDatasetName } from './shared.js';
 import type { Member } from '../../types/zos.js';
 
@@ -33,14 +33,7 @@ const inputShape = {
 };
 
 export const registerSearchMembersTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'search_members',
-    'Search for members in a PDS, optionally filtered by wildcard pattern. Supports extended stats, result capping, and sorting.',
-    inputShape,
-    securedHandler(
-      ctx,
-      'search_members',
-      async ({ dsn, pattern, includeStats, maxResults, sortBy }) => {
+  defineTool(server, ctx, 'search_members', 'Search for members in a PDS, optionally filtered by wildcard pattern. Supports extended stats, result capping, and sorting.', inputShape, async ({ dsn, pattern, includeStats, maxResults, sortBy }) => {
         const normalizedDsn = normalizeDatasetName(dsn);
         assertDatasetAllowed(ctx.config, normalizedDsn);
 
@@ -90,8 +83,5 @@ export const registerSearchMembersTool: ToolRegistrar = (server, ctx) => {
             ? `\n\n[Showing first ${members.length} of ${totalFiltered} filtered members.]`
             : '';
         return textResult(result + suffix);
-      },
-      ({ dsn }) => ({ dataset: dsn }),
-    ),
-  );
+      }, ({ dsn }) => ({ dataset: dsn }));
 };

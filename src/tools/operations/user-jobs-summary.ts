@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { isFailedJob, listJobs } from '../jobs/shared.js';
 
 const inputShape = {
@@ -13,11 +13,7 @@ const inputShape = {
 };
 
 export const registerUserJobsSummaryTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'get_user_jobs_summary',
-    'Summarize job counts by status for a specific owner (active, queued, failed, completed).',
-    inputShape,
-    securedHandler(ctx, 'get_user_jobs_summary', async ({ owner, prefix }) => {
+  defineTool(server, ctx, 'get_user_jobs_summary', 'Summarize job counts by status for a specific owner (active, queued, failed, completed).', inputShape, async ({ owner, prefix }) => {
       const jobs = await listJobs(ctx, owner, prefix ?? '*');
 
       const active = jobs.filter((job) => job.status === 'ACTIVE').length;
@@ -43,6 +39,5 @@ export const registerUserJobsSummaryTool: ToolRegistrar = (server, ctx) => {
           { heading: 'Overview', body: overview },
         ]),
       );
-    }),
-  );
+    });
 };

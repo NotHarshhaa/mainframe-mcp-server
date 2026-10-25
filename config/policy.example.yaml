@@ -1,0 +1,138 @@
+# =============================================================================
+# mainframe-mcp-server — example policy-as-code file
+# =============================================================================
+# Enable with SECURITY_POLICY_FILE=/path/to/policy.yaml
+#
+# One file defines:
+#   - roles: tool allow/deny lists (wildcards), dataset/USS globs, per-role
+#     read-only mode, change-ticket patterns, and read line caps
+#   - users: username -> role mapping, optionally restricted to environments
+#   - environments: named z/OSMF endpoints (DEV/TEST/UAT/PROD, LPARs), each
+#     with its own credentials and policy (e.g. read-only on PROD)
+#   - dataProtection: redaction defaults and classification rules for
+#     sensitive datasets/USS paths
+#
+# Rules of composition:
+#   - Env-var controls (SECURITY_*) still apply — the policy only adds
+#     restrictions, never removes them.
+#   - Roles inherit from their parent (allow lists replace, deny lists and
+#     readOnly accumulate downward). A child that must write must declare
+#     `readOnly: false` explicitly.
+#   - `${env:VAR}` placeholders are interpolated at load time; startup fails
+#     if the variable is unset, so credentials never live in this file.
+#   - The acting identity comes from the SSE `X-MCP-User` header (gateway
+#     deployments), ZOSMF_USER_ID, or the service account.
+# =============================================================================
+
+version: 1
+
+defaults:
+  role: viewer          # applied when a user is not mapped below
+  environment: dev      # applied when a tool call omits the `environment` arg
+
+# -----------------------------------------------------------------------------
+# Named systems (feature: multi-environment)
+# -----------------------------------------------------------------------------
+environments:
+  dev:
+    description: Development LPAR
+    host: dev.zosmf.example.com
+    port: 443
+    basePath: /zosmf
+    user: SVCMCPD
+    password: ${env:ZOSMF_DEV_PASSWORD}
+    readOnly: false
+
+  test:
+    description: Test LPAR
+    host: test.zosmf.example.com
+    user: SVCMCPT
+    password: ${env:ZOSMF_TEST_PASSWORD}
+    readOnly: false
+
+  prod:
+    description: Production sysplex
+    host: prod.zosmf.example.com
+    user: SVCMCPP
+    password: ${env:ZOSMF_PROD_PASSWORD}
+    readOnly: true                      # PROD is read-only, no exceptions
+    allowedRoles: [operator, sre]       # viewer/developer cannot reach PROD
+
+# -----------------------------------------------------------------------------
+# Roles (feature: policy-as-code & RBAC)
+# -----------------------------------------------------------------------------
+roles:
+  viewer:
+    description: Read-only monitoring and diagnostics
+    tools:
+      allow:
+        - "list_*"
+        - "get_*"
+        - "read_*"
+        - "search_*"
+        - "whoami"
+        - "list_environments"
+        - "verify_connection"
+        - "system_health"
+    readOnly: true
+
+  developer:
+    description: Application developers — DEV/TEST only
+    inherits: viewer
+    tools:
+      allow: ["submit_jcl"]
+    datasets:
+      allow: ["DEV.**", "TEST.**"]
+    uss:
+      allow: ["/u/dev/**", "/var/logs/**"]
+
+  operator:
+    description: Operations — may write outside change windows with a ticket
+    inherits: developer
+    readOnly: false                     # explicit: parents are read-only
+    datasets:
+      allow: ["PROD.**"]
+    changeTicketPattern: "CHG[0-9]{6}"
+
+  sre:
+    description: Site reliability — full access, audited
+    inherits: operator
+    tools:
+      allow: ["approve_write", "write_*", "create_*", "delete_*", "rename_*", "change_*"]
+
+# -----------------------------------------------------------------------------
+# Users (identity -> roles; first role wins)
+# -----------------------------------------------------------------------------
+users:
+  - username: BOB
+    roles: [operator]
+    environments: [dev, test, prod]
+  - username: ALICE
+    roles: [developer]
+    environments: [dev, test]
+  - username: AUDITOR
+    roles: [viewer]
+
+# -----------------------------------------------------------------------------
+# Data protection (feature: data protection)
+# -----------------------------------------------------------------------------
+dataProtection:
+  redaction:
+    default: "on"       # mask PII/PCI/SSN/secrets in job output & dataset reads
+    style: mask         # keep last 4 chars; use "token" for full replacement
+    # rules: [ssn, credit_card, email, secrets, jwt, private_key]  # defaults
+
+  classifications:
+    - name: pci-cardholder
+      description: Cardholder data files — mask PANs, cap exposure
+      datasets: ["PROD.CARDS.**", "PROD.PAN.*"]
+      tools: [read_dataset, search_members, get_job_output]
+      redact: [credit_card, ssn]
+      maxLines: 200
+      sample: { head: 100, tail: 25 }
+
+    - name: pii-customer
+      description: Customer PII on USS — restricted readers
+      uss: ["/prod/customers/**"]
+      roles: [sre]                      # only these roles may read at all
+      redact: [ssn, email]

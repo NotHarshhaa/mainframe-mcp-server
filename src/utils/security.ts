@@ -1,11 +1,22 @@
 /**
  * Enterprise security guards — tool allowlists, read-only mode, resource
- * boundaries, and audit logging for every tool invocation.
+ * boundaries, policy-as-code RBAC, classification access, and audit logging
+ * for every tool invocation.
+ *
+ * Two control planes compose (both must pass):
+ *   1. Environment variables (SECURITY_*) — always enforced.
+ *   2. The policy file (SECURITY_POLICY_FILE), when configured — role-based
+ *      tool/resource gates, per-role read-only and change-ticket rules, and
+ *      classification-based access on sensitive resources.
  */
 import type { AppConfig } from '../config/schema.js';
-import type { ToolContext } from '../types/tools.js';
+import type { ToolContext, ResolvedIdentity } from '../types/tools.js';
+import type { ResolvedPolicy, ResolvedRole } from '../config/policy.js';
+import { matchClassification, resolveRoleForUser, roleAllowsDataset, roleAllowsTool, roleAllowsUssPath } from '../config/policy.js';
+import type { DataProtectionAudit } from './audit.js';
 import { ForbiddenError } from './errors.js';
 import { globToRegExp } from './glob.js';
+import { getActiveEnvironmentName, getCorrelationId, resolveActingUser } from './runtime.js';
 
 // ---------------------------------------------------------------------------
 // Write-tool registry
@@ -35,7 +46,7 @@ function parseCsv(value?: string): string[] {
 }
 
 // ---------------------------------------------------------------------------
-// Tool access controls
+// Tool access controls (env-var plane)
 // ---------------------------------------------------------------------------
 
 export function assertToolAllowed(config: AppConfig, toolName: string): void {
@@ -56,6 +67,7 @@ export function assertToolAllowed(config: AppConfig, toolName: string): void {
   }
 }
 
+/** Read-only gate for a single environment: `envDef.readOnly ?? server flag`. */
 export function assertWriteAllowed(config: AppConfig, toolName: string): void {
   if (config.security.readOnly && WRITE_TOOLS.has(toolName)) {
     throw new ForbiddenError(
@@ -66,7 +78,7 @@ export function assertWriteAllowed(config: AppConfig, toolName: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// Resource boundary guards
+// Resource boundary guards (env-var plane)
 // ---------------------------------------------------------------------------
 
 function normalizeDatasetName(dsn: string): string {
@@ -137,11 +149,13 @@ export function assertJclSizeAllowed(config: AppConfig, jcl: string): void {
 
 /**
  * Enforce the change-ticket requirement on governed writes. When
- * SECURITY_CHANGE_TICKET_PATTERN is configured, every write must carry a
- * `changeTicket` argument matching the expression.
+ * SECURITY_CHANGE_TICKET_PATTERN is configured (or the active policy role
+ * declares its own pattern), every write must carry a `changeTicket`
+ * argument matching the expression. The role pattern, when present,
+ * overrides the server-wide one.
  */
-export function assertChangeTicket(config: AppConfig, ticket?: string): void {
-  const pattern = config.security.changeTicketPattern;
+export function assertChangeTicket(config: AppConfig, ticket?: string, patternOverride?: string): void {
+  const pattern = patternOverride ?? config.security.changeTicketPattern;
   if (!pattern) return;
   let regex: RegExp;
   try {
@@ -161,6 +175,95 @@ export function assertChangeTicket(config: AppConfig, ticket?: string): void {
     throw new ForbiddenError(
       `Change ticket "${ticket}" does not match the required format /${pattern}/ (SECURITY_CHANGE_TICKET_PATTERN).`,
       { pattern, ticket },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Policy-as-code plane (feature: policy & RBAC)
+// ---------------------------------------------------------------------------
+
+/** Synthetic unrestricted role used when no policy file is configured. */
+const UNRESTRICTED_ROLE: ResolvedRole = {
+  name: '(no-policy)',
+  tools: { allow: [], deny: [] },
+  datasets: { allow: [], deny: [] },
+  uss: { allow: [], deny: [] },
+};
+
+/**
+ * Resolve the acting identity for the current call: the user (transport
+ * header, per-user identity, or service account) mapped through the policy
+ * file's roles. Returns an unrestricted synthetic role when no policy exists,
+ * so downstream checks are uniform.
+ */
+export function resolveIdentity(ctx: ToolContext): ResolvedIdentity {
+  const user = resolveActingUser(ctx.config.zosmf.userId, ctx.config.zosmf.user);
+  if (!ctx.policy) return { user, role: UNRESTRICTED_ROLE };
+  const { role, userEntry } = resolveRoleForUser(ctx.policy, user);
+  return { user, role, userEntry };
+}
+
+/** Role-based tool gate (policy plane). */
+export function assertPolicyToolAllowed(identity: ResolvedIdentity, toolName: string): void {
+  if (!roleAllowsTool(identity.role, toolName)) {
+    throw new ForbiddenError(
+      `Tool "${toolName}" is not permitted for role "${identity.role.name}" (policy file).`,
+      { toolName, role: identity.role.name },
+    );
+  }
+}
+
+/** Role-based read-only gate (policy plane; environment readOnly checked separately). */
+export function assertPolicyWriteAllowed(role: ResolvedRole, toolName: string): void {
+  if (role.readOnly && WRITE_TOOLS.has(toolName)) {
+    throw new ForbiddenError(
+      `Tool "${toolName}" is a write operation and role "${role.name}" is read-only (policy file).`,
+      { toolName, role: role.name },
+    );
+  }
+}
+
+/** Role + classification access gate for the addressed resources. */
+export function assertPolicyResourcesAllowed(
+  policy: ResolvedPolicy,
+  identity: ResolvedIdentity,
+  toolName: string,
+  resources?: { dataset?: string; ussPath?: string },
+): void {
+  if (resources?.dataset) {
+    const upper = normalizeDatasetName(resources.dataset);
+    if (!roleAllowsDataset(identity.role, upper)) {
+      throw new ForbiddenError(
+        `Dataset "${resources.dataset}" is outside the dataset patterns of role "${identity.role.name}" (policy file).`,
+        { dataset: resources.dataset, role: identity.role.name },
+      );
+    }
+    assertClassificationAccess(policy, identity, { tool: toolName, dataset: resources.dataset });
+  }
+  if (resources?.ussPath) {
+    const normalized = normalizeUssPath(resources.ussPath.trim());
+    if (!roleAllowsUssPath(identity.role, normalized)) {
+      throw new ForbiddenError(
+        `USS path "${resources.ussPath}" is outside the USS paths of role "${identity.role.name}" (policy file).`,
+        { path: resources.ussPath, role: identity.role.name },
+      );
+    }
+    assertClassificationAccess(policy, identity, { tool: toolName, ussPath: resources.ussPath });
+  }
+}
+
+/** Classification role gate: some classified resources are role-restricted. */
+export function assertClassificationAccess(
+  policy: ResolvedPolicy,
+  identity: ResolvedIdentity,
+  ref: { tool: string; dataset?: string; ussPath?: string },
+): void {
+  const classification = matchClassification(policy, ref);
+  if (classification?.roles && !classification.roles.includes(identity.role.name)) {
+    throw new ForbiddenError(
+      `Resource is classified "${classification.name}" and requires one of roles: ${classification.roles.join(', ')} (policy file).`,
+      { classification: classification.name, role: identity.role.name },
     );
   }
 }
@@ -194,24 +297,39 @@ export function redactArgs(args: unknown): unknown {
 
 export type AuditOutcome = 'success' | 'error' | 'blocked';
 
+export interface AuditCallOptions {
+  outcome?: AuditOutcome;
+  durationMs?: number;
+  errorCode?: string;
+  resultChars?: number;
+  dataProtection?: DataProtectionAudit;
+}
+
+/**
+ * Emit the audit trail for a tool call: a structured pino line (stderr, as
+ * before) plus — once the outcome is known — a hash-chained record fanned out
+ * to the configured SIEM sinks (file, Splunk HEC, webhook, OTLP).
+ */
 export function auditToolCall(
   ctx: ToolContext,
   toolName: string,
   args: Record<string, unknown>,
-  opts?: {
-    outcome?: AuditOutcome;
-    durationMs?: number;
-    errorCode?: string;
-  },
+  opts?: AuditCallOptions,
 ): void {
   if (!ctx.config.security.auditLogging) return;
+
+  const environment = ctx.environments ? getActiveEnvironmentName() : 'default';
+  const host =
+    (ctx.environments ? safeEnvHost(ctx, environment) : undefined) ?? ctx.config.zosmf.host;
+  const user = resolveActingUser(ctx.config.zosmf.userId, ctx.config.zosmf.user);
 
   ctx.logger.info(
     {
       audit: true,
       tool: toolName,
-      user: ctx.config.zosmf.user ?? '(token-auth)',
-      host: ctx.config.zosmf.host,
+      user,
+      host,
+      environment,
       args: redactArgs(args),
       ...(opts?.outcome !== undefined && { outcome: opts.outcome }),
       ...(opts?.durationMs !== undefined && { durationMs: opts.durationMs }),
@@ -219,23 +337,98 @@ export function auditToolCall(
     },
     'MCP tool invocation',
   );
+
+  // Structured SIEM record: emitted once per call, when the outcome is known.
+  if (ctx.audit && opts?.outcome !== undefined) {
+    ctx.audit.record({
+      tool: toolName,
+      user,
+      transport: currentTransport,
+      environment,
+      host,
+      correlationId: getCorrelationId(),
+      arguments: args,
+      ...(safeResources(args) ? { resources: safeResources(args) } : {}),
+      outcome: opts.outcome,
+      ...(opts.errorCode ? { errorCode: opts.errorCode } : {}),
+      ...(opts.durationMs !== undefined ? { durationMs: opts.durationMs } : {}),
+      ...(opts.resultChars !== undefined ? { resultChars: opts.resultChars } : {}),
+      ...(opts.dataProtection ? { dataProtection: opts.dataProtection } : {}),
+    });
+  }
+}
+
+/** Transport label stamped into audit records (set once at startup). */
+let currentTransport = 'stdio';
+
+export function setAuditTransport(transport: string): void {
+  currentTransport = transport;
+}
+
+function safeEnvHost(ctx: ToolContext, environment: string): string | undefined {
+  try {
+    return ctx.environments?.get(environment).host;
+  } catch {
+    return undefined;
+  }
+}
+
+function safeResources(args: Record<string, unknown>): { dataset?: string; ussPath?: string } | undefined {
+  const dataset = typeof args.dsn === 'string' ? args.dsn : typeof args.hlq === 'string' ? args.hlq : undefined;
+  const ussPath = typeof args.path === 'string' ? args.path : undefined;
+  if (dataset === undefined && ussPath === undefined) return undefined;
+  return {
+    ...(dataset !== undefined ? { dataset } : {}),
+    ...(ussPath !== undefined ? { ussPath } : {}),
+  };
 }
 
 // ---------------------------------------------------------------------------
 // Composite security gate
 // ---------------------------------------------------------------------------
 
+/**
+ * Enforce every access-control plane for one tool call. Runs inside the call
+ * runtime, so the active environment (from the `environment` argument) is
+ * already resolved by the caller.
+ */
 export function enforceSecurity(
   ctx: ToolContext,
   toolName: string,
   args: Record<string, unknown>,
   resources?: { dataset?: string; ussPath?: string },
-): void {
+): ResolvedIdentity {
+  // Plane 1: env-var tool lists.
   assertToolAllowed(ctx.config, toolName);
+
+  // Plane 2: policy-as-code (identity, role gates, environment RBAC).
+  const identity = resolveIdentity(ctx);
+  if (ctx.policy) {
+    assertPolicyToolAllowed(identity, toolName);
+  }
+
+  // Write gating: server-wide flag, active environment flag, role flag.
   assertWriteAllowed(ctx.config, toolName);
+  if (ctx.environments) {
+    const envName = getActiveEnvironmentName();
+    if (ctx.environments.isReadOnly(envName) && WRITE_TOOLS.has(toolName)) {
+      throw new ForbiddenError(
+        `Tool "${toolName}" is a write operation and environment "${envName}" is read-only (policy: environments.${envName}.readOnly).`,
+        { toolName, environment: envName },
+      );
+    }
+  }
+  assertPolicyWriteAllowed(identity.role, toolName);
+
+  // Resource boundaries: env-var patterns, then role patterns, then
+  // classification access rules.
+  if (resources?.dataset) assertDatasetAllowed(ctx.config, resources.dataset);
+  if (resources?.ussPath) assertUssPathAllowed(ctx.config, resources.ussPath);
+  if (ctx.policy) {
+    assertPolicyResourcesAllowed(ctx.policy, identity, toolName, resources);
+  }
 
   auditToolCall(ctx, toolName, args);
 
-  if (resources?.dataset) assertDatasetAllowed(ctx.config, resources.dataset);
-  if (resources?.ussPath) assertUssPathAllowed(ctx.config, resources.ussPath);
+  return identity;
 }

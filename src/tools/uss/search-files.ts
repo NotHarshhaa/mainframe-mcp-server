@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { formatUssListing, textResult } from '../../utils/formatters.js';
 import { globToRegExp } from '../../utils/glob.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { listUssDirectory, normalizePath, sortUssEntries } from './shared.js';
 
 const inputShape = {
@@ -34,14 +34,7 @@ const inputShape = {
 };
 
 export const registerSearchFilesTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'search_uss_files',
-    'Search for files/directories in a USS directory matching a wildcard name pattern. Supports type filter, sort, and result capping.',
-    inputShape,
-    securedHandler(
-      ctx,
-      'search_uss_files',
-      async ({ path, pattern, type, sortBy, maxResults }) => {
+  defineTool(server, ctx, 'search_uss_files', 'Search for files/directories in a USS directory matching a wildcard name pattern. Supports type filter, sort, and result capping.', inputShape, async ({ path, pattern, type, sortBy, maxResults }) => {
         const normalizedPath = normalizePath(path);
 
         const entries = await listUssDirectory(ctx, normalizedPath);
@@ -80,8 +73,5 @@ export const registerSearchFilesTool: ToolRegistrar = (server, ctx) => {
             totalCount: maxResults != null && matched.length < totalMatched ? totalMatched : undefined,
           }),
         );
-      },
-      ({ path }) => ({ ussPath: path }),
-    ),
-  );
+      }, ({ path }) => ({ ussPath: path }));
 };

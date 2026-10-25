@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { renderTable, textResult } from '../../utils/formatters.js';
 import { listCicsRegions } from './shared.js';
 
@@ -25,11 +25,7 @@ const inputShape = {
 };
 
 export const registerListCicsRegionsTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'list_cics_regions',
-    'List CICS regions in a CMCI context. Supports status filter and result capping.',
-    inputShape,
-    securedHandler(ctx, 'list_cics_regions', async ({ context, status, maxResults }) => {
+  defineTool(server, ctx, 'list_cics_regions', 'List CICS regions in a CMCI context. Supports status filter and result capping.', inputShape, async ({ context, status, maxResults }) => {
       let regions = await listCicsRegions(ctx, context, status);
 
       const total = regions.length;
@@ -59,6 +55,5 @@ export const registerListCicsRegionsTool: ToolRegistrar = (server, ctx) => {
         `CICS Regions${statusLine} — ${regions.length} found${capNote}\n\n` +
           renderTable(['APPLID', 'Status', 'CICSPlex', 'SYSID', 'Version', 'Job'], rows),
       );
-    }),
-  );
+    });
 };

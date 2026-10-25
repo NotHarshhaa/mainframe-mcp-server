@@ -9,7 +9,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import {
   formatAbendInfo,
   formatAnalysisFull,
@@ -32,11 +32,7 @@ const inputShape = {
 };
 
 export const registerAnalyzeRootCauseTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'analyze_root_cause',
-    'Deep AI-assisted root-cause analysis: full failure details, abend reference, similar-incident correlation, correlated abends, health score, and prioritized action items.',
-    inputShape,
-    securedHandler(ctx, 'analyze_root_cause', async ({ jobId, lookbackHours }) => {
+  defineTool(server, ctx, 'analyze_root_cause', 'Deep AI-assisted root-cause analysis: full failure details, abend reference, similar-incident correlation, correlated abends, health score, and prioritized action items.', inputShape, async ({ jobId, lookbackHours }) => {
       const window = lookbackHours ?? 72;
       const report = await buildRootCauseReport(ctx, jobId, window);
 
@@ -97,6 +93,5 @@ export const registerAnalyzeRootCauseTool: ToolRegistrar = (server, ctx) => {
           ],
         ),
       );
-    }),
-  );
+    });
 };

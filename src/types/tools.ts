@@ -9,6 +9,9 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Session } from '@zowe/imperative';
 import type { Logger } from 'pino';
 import type { AppConfig } from '../config/schema.js';
+import type { ResolvedPolicy, ResolvedRole, ResolvedUser } from '../config/policy.js';
+import type { AuditLogger } from '../utils/audit.js';
+import type { EnvironmentRegistry } from '../environments/registry.js';
 
 /** Everything a tool needs at runtime. */
 export interface ToolContext {
@@ -25,6 +28,23 @@ export interface ToolContext {
    * sees who asked, not just the service account.
    */
   resolveSession?: () => Promise<Session>;
+  /**
+   * Resolved policy-as-code document (roles, RBAC, environments, data
+   * classifications). Present only when SECURITY_POLICY_FILE is configured;
+   * env-var controls apply regardless.
+   */
+  policy?: ResolvedPolicy;
+  /** Named z/OSMF environments (feature: multi-environment). */
+  environments?: EnvironmentRegistry;
+  /** SIEM audit pipeline (feature: audit). Absent when no sinks are configured. */
+  audit?: AuditLogger;
+}
+
+/** The active role and user mapping for the current call. */
+export interface ResolvedIdentity {
+  user: string;
+  role: ResolvedRole;
+  userEntry?: ResolvedUser;
 }
 
 /** Signature shared by every tool-group registration function. */

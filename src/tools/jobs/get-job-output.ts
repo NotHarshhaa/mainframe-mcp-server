@@ -13,7 +13,7 @@ import {
   textResult,
   truncateLines,
 } from '../../utils/formatters.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { assertValidJobId, fetchJob, fetchSpoolContent, fetchSpoolFiles, normalizeJobId } from './shared.js';
 
 const inputShape = {
@@ -39,11 +39,7 @@ const inputShape = {
 };
 
 export const registerGetJobOutputTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'get_job_output',
-    'Retrieve spool output for a job. Lists spool files (with optional step filter), or returns one DD content (with optional text grep and line cap).',
-    inputShape,
-    securedHandler(ctx, 'get_job_output', async ({ jobId, ddName, stepName, searchText, maxLines }) => {
+  defineTool(server, ctx, 'get_job_output', 'Retrieve spool output for a job. Lists spool files (with optional step filter), or returns one DD content (with optional text grep and line cap).', inputShape, async ({ jobId, ddName, stepName, searchText, maxLines }) => {
       assertValidJobId(jobId);
       const normalizedId = normalizeJobId(jobId);
 
@@ -95,6 +91,5 @@ export const registerGetJobOutputTool: ToolRegistrar = (server, ctx) => {
         cap,
       );
       return textResult(header + grepNote + (grepNote ? '\n' : '') + text);
-    }),
-  );
+    });
 };

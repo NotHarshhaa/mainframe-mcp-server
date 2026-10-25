@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { fetchQuickFailureStep } from '../jobs/shared.js';
 import { findFailedJobs } from './shared.js';
@@ -22,11 +22,7 @@ const inputShape = {
 };
 
 export const registerFailedJobsTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'find_failed_jobs',
-    'Find all failed jobs within a recent time window and summarize their abend/step.',
-    inputShape,
-    securedHandler(ctx, 'find_failed_jobs', async ({ hours, owner }) => {
+  defineTool(server, ctx, 'find_failed_jobs', 'Find all failed jobs within a recent time window and summarize their abend/step.', inputShape, async ({ hours, owner }) => {
       const window = hours ?? 24;
       const failures = await findFailedJobs(ctx, window, owner ?? '*');
 
@@ -63,6 +59,5 @@ export const registerFailedJobsTool: ToolRegistrar = (server, ctx) => {
           },
         ]),
       );
-    }),
-  );
+    });
 };

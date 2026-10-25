@@ -8,7 +8,7 @@
  */
 import { loadConfig } from './config/index.js';
 import { createLogger } from './utils/logger.js';
-import { buildServer, startSse, startStdio } from './server.js';
+import { buildServer, createAuditFromConfig, startSse, startStdio } from './server.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -19,14 +19,20 @@ async function main(): Promise<void> {
     'Starting mainframe-mcp-server',
   );
 
-  const server = buildServer(config, logger);
+  const audit = createAuditFromConfig(config, logger);
+  const server = buildServer(config, logger, { audit });
 
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, 'Shutting down');
     try {
       await server.close();
     } finally {
-      process.exit(0);
+      // Deliver any queued audit batches before exit.
+      try {
+        await audit?.close();
+      } finally {
+        process.exit(0);
+      }
     }
   };
   process.on('SIGINT', () => void shutdown('SIGINT'));

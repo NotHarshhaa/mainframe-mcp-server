@@ -13,7 +13,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import {
   formatAnalysisFull,
   formatSpoolFiles,
@@ -38,11 +38,7 @@ const inputShape = {
 };
 
 export const registerInvestigateTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'investigate_incident',
-    'Assemble a full incident bundle for a job: status, root-cause analysis (with abend reference), complete spool inventory, and diagnostic excerpts from all relevant DDs.',
-    inputShape,
-    securedHandler(ctx, 'investigate_incident', async ({ jobId, maxExcerptLines }) => {
+  defineTool(server, ctx, 'investigate_incident', 'Assemble a full incident bundle for a job: status, root-cause analysis (with abend reference), complete spool inventory, and diagnostic excerpts from all relevant DDs.', inputShape, async ({ jobId, maxExcerptLines }) => {
       const excerptLines = maxExcerptLines ?? 80;
 
       const analysis = await analyzeJobFailure(ctx, jobId);
@@ -94,6 +90,5 @@ export const registerInvestigateTool: ToolRegistrar = (server, ctx) => {
       return textResult(
         formatStructuredResponse(`Incident Investigation — ${job.jobName} (${job.jobId})`, sections),
       );
-    }),
-  );
+    });
 };

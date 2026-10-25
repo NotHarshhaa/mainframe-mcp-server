@@ -4,7 +4,7 @@
 import type { ToolRegistrar } from '../../types/tools.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { WRITE_TOOLS } from '../../utils/security.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 
 function flag(enabled: boolean): string {
   return enabled ? '✓ ENABLED' : '✗ disabled';
@@ -15,11 +15,7 @@ function flagInverse(disabled: boolean): string {
 }
 
 export const registerSecurityPostureTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'security_posture_summary',
-    'Report the server security posture: terms acknowledgement, read-only mode, tool allowlists, TLS, audit logging, resource boundaries, and tiered security recommendations.',
-    {},
-    securedHandler(ctx, 'security_posture_summary', async () => {
+  defineTool(server, ctx, 'security_posture_summary', 'Report the server security posture: terms acknowledgement, read-only mode, tool allowlists, TLS, audit logging, resource boundaries, and tiered security recommendations.', {}, async () => {
       const { security, zosmf, enterprise } = ctx.config;
 
       const allowedTools = security.allowedTools?.split(',').map((t) => t.trim()).filter(Boolean) ?? [];
@@ -142,6 +138,5 @@ export const registerSecurityPostureTool: ToolRegistrar = (server, ctx) => {
           },
         ]),
       );
-    }),
-  );
+    });
 };

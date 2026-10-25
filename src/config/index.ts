@@ -31,6 +31,8 @@ function readEnv(): unknown {
       passticketApp: process.env.ZOSMF_PASSTICKET_APP,
       teamConfig: process.env.ZOWE_TEAM_CONFIG,
       profile: process.env.ZOSMF_PROFILE,
+      environments: process.env.ZOSMF_ENVIRONMENTS,
+      activeEnvironment: process.env.ZOSMF_ENV,
     },
     mcp: {
       name: process.env.MCP_SERVER_NAME,
@@ -78,6 +80,16 @@ function readEnv(): unknown {
       writeWindow: process.env.SECURITY_WRITE_WINDOW,
       writeDays: process.env.SECURITY_WRITE_DAYS,
       writeWindowTz: process.env.SECURITY_WRITE_WINDOW_TZ,
+      policyFile: process.env.SECURITY_POLICY_FILE,
+      auditFile: process.env.SECURITY_AUDIT_FILE,
+      auditSplunkUrl: process.env.SECURITY_AUDIT_SPLUNK_URL,
+      auditSplunkToken: process.env.SECURITY_AUDIT_SPLUNK_TOKEN,
+      auditWebhookUrl: process.env.SECURITY_AUDIT_WEBHOOK_URL,
+      auditWebhookToken: process.env.SECURITY_AUDIT_WEBHOOK_TOKEN,
+      auditOtlpUrl: process.env.SECURITY_AUDIT_OTLP_URL,
+      dataProtection: process.env.SECURITY_DATA_PROTECTION,
+      redactionRules: process.env.SECURITY_REDACTION_RULES,
+      redactionStyle: process.env.SECURITY_REDACTION_STYLE,
     },
   };
 }

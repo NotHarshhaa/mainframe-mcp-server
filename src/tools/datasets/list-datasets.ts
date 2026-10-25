@@ -7,7 +7,7 @@ import { ValidationError } from '../../utils/errors.js';
 import { formatDatasetList, textResult } from '../../utils/formatters.js';
 import { buildDatasetPattern } from '../../utils/glob.js';
 import { assertDatasetAllowed } from '../../utils/security.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { listDatasets, normalizeDatasetName } from './shared.js';
 
 const inputShape = {
@@ -29,14 +29,7 @@ const inputShape = {
 };
 
 export const registerListDatasetsTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'list_datasets',
-    'List catalog datasets matching a high-level qualifier (and optional pattern). Supports filtering by DSORG and capping result count.',
-    inputShape,
-    securedHandler(
-      ctx,
-      'list_datasets',
-      async ({ hlq, pattern, dsorg, maxResults }) => {
+  defineTool(server, ctx, 'list_datasets', 'List catalog datasets matching a high-level qualifier (and optional pattern). Supports filtering by DSORG and capping result count.', inputShape, async ({ hlq, pattern, dsorg, maxResults }) => {
         const normalizedHlq = normalizeDatasetName(hlq);
 
         // Validate HLQ: each node ≤ 8 alphanumeric/national chars, no spaces
@@ -71,8 +64,5 @@ export const registerListDatasetsTool: ToolRegistrar = (server, ctx) => {
 
         ctx.logger.debug({ search, dsorg, totalMatched, returned: datasets.length }, 'list_datasets');
         return textResult(formatDatasetList(datasets, { maxResults, totalMatched }));
-      },
-      ({ hlq }) => ({ dataset: hlq }),
-    ),
-  );
+      }, ({ hlq }) => ({ dataset: hlq }));
 };

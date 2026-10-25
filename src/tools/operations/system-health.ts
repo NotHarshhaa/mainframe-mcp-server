@@ -11,7 +11,7 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { GetJobs } from '@zowe/zos-jobs-for-zowe-sdk';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { effectiveSession } from '../../zowe/enduser.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { isFailedJob, normalizeJob } from '../jobs/shared.js';
@@ -33,11 +33,7 @@ const inputShape = {
 };
 
 export const registerSystemHealthTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'system_health_summary',
-    'Produce a high-level operational health snapshot: overall status (HEALTHY/DEGRADED/CRITICAL), active and queued jobs, recent failure count, top abend codes with descriptions, and per-owner failure breakdown.',
-    inputShape,
-    securedHandler(ctx, 'system_health_summary', async ({ lookbackHours }) => {
+  defineTool(server, ctx, 'system_health_summary', 'Produce a high-level operational health snapshot: overall status (HEALTHY/DEGRADED/CRITICAL), active and queued jobs, recent failure count, top abend codes with descriptions, and per-owner failure breakdown.', inputShape, async ({ lookbackHours }) => {
       // Always fetch the live job queue for counts
       const raws = await GetJobs.getJobsByOwnerAndPrefix(await effectiveSession(ctx), '*', '*');
       const jobs = raws.map(normalizeJob);
@@ -121,6 +117,5 @@ export const registerSystemHealthTool: ToolRegistrar = (server, ctx) => {
           { heading: 'Failures by owner', body: ownerBody },
         ]),
       );
-    }),
-  );
+    });
 };

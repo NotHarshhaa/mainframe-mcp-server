@@ -19,8 +19,8 @@ import { SubmitJobs, GetJobs } from '@zowe/zos-jobs-for-zowe-sdk';
 import type { ToolRegistrar, ToolContext } from '../../types/tools.js';
 import { ValidationError, ConfigError, ForbiddenError } from '../../utils/errors.js';
 import { formatJobStatus, textResult, formatStructuredResponse, renderTable } from '../../utils/formatters.js';
-import { assertChangeTicket, assertJclSizeAllowed } from '../../utils/security.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { assertChangeTicket, assertJclSizeAllowed, resolveIdentity } from '../../utils/security.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { scanJcl, type JclFinding } from '../../utils/jcl-scan.js';
 import { parseWriteWindow, assertWithinWriteWindow, type ParsedWriteWindow } from '../../utils/write-window.js';
 import { effectiveSession } from '../../zowe/enduser.js';
@@ -156,7 +156,10 @@ function enforceGovernance(ctx: ToolContext, findings: JclFinding[], changeTicke
     );
   }
 
-  assertChangeTicket(ctx.config, changeTicket);
+  // The active policy role may declare its own change-ticket pattern, which
+  // overrides the server-wide SECURITY_CHANGE_TICKET_PATTERN.
+  const { role } = resolveIdentity(ctx);
+  assertChangeTicket(ctx.config, changeTicket, role.changeTicketPattern);
 
   const window = parseConfiguredWindow(ctx);
   if (window) assertWithinWriteWindow(window);
@@ -200,11 +203,7 @@ export async function submitPreparedJcl(
 }
 
 export const registerSubmitJclTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'submit_jcl',
-    'Submit inline JCL to JES for execution. Governed: pre-flight scan, change ticket, change window, optional dry-run and human approval (SECURITY_* settings).',
-    inputShape,
-    securedHandler(ctx, 'submit_jcl', async ({ jcl, wait, timeout, jobClass, notify, dryRun, changeTicket }) => {
+  defineTool(server, ctx, 'submit_jcl', 'Submit inline JCL to JES for execution. Governed: pre-flight scan, change ticket, change window, optional dry-run and human approval (SECURITY_* settings).', inputShape, async ({ jcl, wait, timeout, jobClass, notify, dryRun, changeTicket }) => {
       const normalized = validateJclStructure(jcl);
       assertJclSizeAllowed(ctx.config, normalized);
 
@@ -229,13 +228,14 @@ export const registerSubmitJclTool: ToolRegistrar = (server, ctx) => {
       // ---- Dry-run: report, enforce nothing ------------------------------
       if (dryRun) {
         const window = parseConfiguredWindow(ctx);
+        const effectiveTicketPattern = resolveIdentity(ctx).role.changeTicketPattern ?? ctx.config.security.changeTicketPattern;
         const sections = [
           { heading: 'Validation', body: 'JCL structure and size checks passed. Submission was NOT performed.' },
           { heading: 'Pre-flight scan', body: findingsTable(findings) },
           {
             heading: 'Governance',
             body: [
-              `Change ticket: ${ctx.config.security.changeTicketPattern ? `required (must match /${ctx.config.security.changeTicketPattern}/)${changeTicket ? ` — provided: "${changeTicket}"` : ' — not provided'}` : 'not required'}`,
+              `Change ticket: ${effectiveTicketPattern ? `required (must match /${effectiveTicketPattern}/)${changeTicket ? ` — provided: "${changeTicket}"` : ' — not provided'}` : 'not required'}`,
               `Change window: ${window ? 'configured — a real submission must be inside the window' : 'none configured'}`,
               `Human approval: ${ctx.config.security.writeApproval ? 'ENABLED — a real submission returns a one-time approval token for approve_write' : 'disabled — a real submission executes immediately'}`,
               `Identity: ${ctx.config.zosmf.userId ? `end-user ${ctx.config.zosmf.userId} (PassTicket propagation)` : 'service account'}`,
@@ -278,6 +278,5 @@ export const registerSubmitJclTool: ToolRegistrar = (server, ctx) => {
 
       const result = await submitPreparedJcl(ctx, prepared, { wait, timeout });
       return textResult(result + overrideSuffix);
-    }),
-  );
+    });
 };

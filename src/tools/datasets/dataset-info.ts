@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { formatDatasetInfo, textResult } from '../../utils/formatters.js';
 import { assertDatasetAllowed } from '../../utils/security.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { getDatasetInfo, listMembersWithStats, normalizeDatasetName } from './shared.js';
 import type { Member } from '../../types/zos.js';
 
@@ -20,14 +20,7 @@ const inputShape = {
 };
 
 export const registerDatasetInfoTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'get_dataset_info',
-    'Get catalog attributes (DSORG, type, RECFM, LRECL, BLKSIZE, volume) for a dataset without reading its content. Optionally includes member summary for PDS/PDSE.',
-    inputShape,
-    securedHandler(
-      ctx,
-      'get_dataset_info',
-      async ({ dsn, includeMembers }) => {
+  defineTool(server, ctx, 'get_dataset_info', 'Get catalog attributes (DSORG, type, RECFM, LRECL, BLKSIZE, volume) for a dataset without reading its content. Optionally includes member summary for PDS/PDSE.', inputShape, async ({ dsn, includeMembers }) => {
         const normalizedDsn = normalizeDatasetName(dsn);
         assertDatasetAllowed(ctx.config, normalizedDsn);
 
@@ -56,8 +49,5 @@ export const registerDatasetInfoTool: ToolRegistrar = (server, ctx) => {
         }
 
         return textResult(formatDatasetInfo(info, memberData));
-      },
-      ({ dsn }) => ({ dataset: dsn }),
-    ),
-  );
+      }, ({ dsn }) => ({ dataset: dsn }));
 };

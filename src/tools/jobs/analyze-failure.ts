@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { formatAnalysisFull, textResult } from '../../utils/formatters.js';
 import { analyzeJobFailure, assertValidJobId, isFailedJob, normalizeJobId } from './shared.js';
 
@@ -20,11 +20,7 @@ const inputShape = {
 };
 
 export const registerAnalyzeFailureTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'analyze_job_failure',
-    'Analyze a failed job: identify the abend code, failing/cancelled step, program, and a suggested fix. Produces a rich 3-section report.',
-    inputShape,
-    securedHandler(ctx, 'analyze_job_failure', async ({ jobId, includeEvidence, spoolDd }) => {
+  defineTool(server, ctx, 'analyze_job_failure', 'Analyze a failed job: identify the abend code, failing/cancelled step, program, and a suggested fix. Produces a rich 3-section report.', inputShape, async ({ jobId, includeEvidence, spoolDd }) => {
       assertValidJobId(jobId);
       const normalizedId = normalizeJobId(jobId);
       const normalizedDd = spoolDd?.toUpperCase();
@@ -46,6 +42,5 @@ export const registerAnalyzeFailureTool: ToolRegistrar = (server, ctx) => {
       return textResult(
         formatAnalysisFull(analysis, { includeEvidence: includeEvidence !== false }),
       );
-    }),
-  );
+    });
 };

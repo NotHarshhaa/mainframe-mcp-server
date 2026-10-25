@@ -51,7 +51,19 @@
         "SECURITY_CHANGE_TICKET_PATTERN": "",
         "SECURITY_WRITE_WINDOW": "",
         "SECURITY_WRITE_DAYS": "1-5",
-        "SECURITY_WRITE_WINDOW_TZ": "UTC"
+        "SECURITY_WRITE_WINDOW_TZ": "UTC",
+        "SECURITY_POLICY_FILE": "",
+        "ZOSMF_ENVIRONMENTS": "",
+        "ZOSMF_ENV": "",
+        "SECURITY_AUDIT_FILE": "",
+        "SECURITY_AUDIT_SPLUNK_URL": "",
+        "SECURITY_AUDIT_SPLUNK_TOKEN": "",
+        "SECURITY_AUDIT_WEBHOOK_URL": "",
+        "SECURITY_AUDIT_WEBHOOK_TOKEN": "",
+        "SECURITY_AUDIT_OTLP_URL": "",
+        "SECURITY_DATA_PROTECTION": "true",
+        "SECURITY_REDACTION_RULES": "",
+        "SECURITY_REDACTION_STYLE": "mask"
       }
     }
   }

@@ -16,6 +16,7 @@ import type { AppConfig } from '../config/schema.js';
 import type { ToolContext } from '../types/tools.js';
 import { ConfigError, ConnectionError } from '../utils/errors.js';
 import { childLogger } from '../utils/logger.js';
+import { getActiveEnvironmentName } from '../utils/runtime.js';
 import { postJson } from './rest-client.js';
 
 /** z/OSMF Generate PassTicket REST endpoint. */
@@ -120,10 +121,19 @@ export function invalidateEndUserSession(userId?: string): void {
 }
 
 /**
- * The session a tool should issue z/OSMF calls on: the end-user session when
- * per-user identity is configured, otherwise the service session.
+ * The session a tool should issue z/OSMF calls on:
+ *   1. A named environment session when the call targets one (multi-environment)
+ *   2. The end-user PassTicket session when per-user identity is configured
+ *   3. The service session
+ *
+ * Per-user identity propagation applies to the base z/OSMF connection; named
+ * environments authenticate with their own configured credentials.
  */
 export async function effectiveSession(ctx: ToolContext): Promise<Session> {
+  const envName = getActiveEnvironmentName();
+  if (ctx.environments && envName !== 'default') {
+    return ctx.environments.getSession(envName);
+  }
   if (ctx.resolveSession) return ctx.resolveSession();
   return ctx.session;
 }

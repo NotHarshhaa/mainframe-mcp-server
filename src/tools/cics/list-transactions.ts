@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { renderTable, textResult } from '../../utils/formatters.js';
 import { assertValidApplid, listCicsTransactions, normalizeApplid } from './shared.js';
 
@@ -33,11 +33,7 @@ const inputShape = {
 };
 
 export const registerListCicsTransactionsTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'list_cics_transactions',
-    'List CICS transaction definitions installed in a region via CMCI. Supports prefix/status filters and result capping.',
-    inputShape,
-    securedHandler(ctx, 'list_cics_transactions', async ({ region, context, tranPrefix, status, maxResults }) => {
+  defineTool(server, ctx, 'list_cics_transactions', 'List CICS transaction definitions installed in a region via CMCI. Supports prefix/status filters and result capping.', inputShape, async ({ region, context, tranPrefix, status, maxResults }) => {
       assertValidApplid(region);
       const applid = normalizeApplid(region);
 
@@ -80,6 +76,5 @@ export const registerListCicsTransactionsTool: ToolRegistrar = (server, ctx) => 
         `CICS Transactions — ${applid}${filterLine} — ${transactions.length} found${capNote}\n\n` +
           renderTable(['Tran ID', 'Program', 'Status', 'Tasks', 'Priority', 'Profile'], rows),
       );
-    }),
-  );
+    });
 };

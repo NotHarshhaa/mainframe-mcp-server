@@ -6,7 +6,7 @@ import type { ToolRegistrar } from '../../types/tools.js';
 import { ValidationError } from '../../utils/errors.js';
 import { formatDatasetList, textResult } from '../../utils/formatters.js';
 import { assertDatasetAllowed } from '../../utils/security.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { listDatasets } from './shared.js';
 
 const inputShape = {
@@ -27,14 +27,7 @@ const inputShape = {
 };
 
 export const registerSearchDatasetTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'search_dataset',
-    'Search the catalog for datasets matching a wildcard pattern. Supports DSORG filter and result capping.',
-    inputShape,
-    securedHandler(
-      ctx,
-      'search_dataset',
-      async ({ pattern, dsorg, maxResults }) => {
+  defineTool(server, ctx, 'search_dataset', 'Search the catalog for datasets matching a wildcard pattern. Supports DSORG filter and result capping.', inputShape, async ({ pattern, dsorg, maxResults }) => {
         const normalizedPattern = pattern.trim().toUpperCase();
 
         // Require at least one '.' or '*' to prevent accidental whole-catalog dumps
@@ -67,8 +60,5 @@ export const registerSearchDatasetTool: ToolRegistrar = (server, ctx) => {
 
         ctx.logger.debug({ pattern: normalizedPattern, dsorg, totalMatched, returned: datasets.length }, 'search_dataset');
         return textResult(formatDatasetList(datasets, { maxResults, totalMatched }));
-      },
-      ({ pattern }) => ({ dataset: pattern.split('.')[0] ?? pattern }),
-    ),
-  );
+      }, ({ pattern }) => ({ dataset: pattern.split('.')[0] ?? pattern }));
 };

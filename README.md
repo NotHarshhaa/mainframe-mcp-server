@@ -45,6 +45,7 @@
 - [z/OS prerequisites](#zos-prerequisites)
 - [Tools](#tools)
 - [Enterprise security](#enterprise-security)
+  - [Enterprise features](#enterprise-features)
 - [Per-user identity & SSO](#per-user-identity--sso)
 - [Governed writes](#governed-writes)
 - [Trust model & prompt injection](#trust-model--prompt-injection)
@@ -207,6 +208,13 @@ Built in — see [How the intelligence tools work](#how-the-intelligence-tools-w
 | `analyze_root_cause` | READ | Deep root-cause analysis with correlation and action items |
 | `predict_batch_failures` | READ | Predictive risk scoring for recurring batch failures |
 
+### Governance
+
+| Tool | Type | Description |
+|---|---|---|
+| `list_environments` | OFFLINE | Named z/OS environments (DEV/TEST/UAT/PROD, LPARs) with per-environment read-only and role policy |
+| `whoami` | OFFLINE | Acting identity, resolved role, permission summary, active environment, data-protection status |
+
 See [docs/tools-reference.md](./docs/tools-reference.md) for full input/output details.
 
 ---
@@ -225,6 +233,30 @@ Security is enforced at the **MCP server layer**, in addition to RACF/z/OSMF per
 | Audit logging | `SECURITY_AUDIT_LOGGING=true` | Log every tool call (credentials redacted) |
 | JCL size limit | `SECURITY_MAX_JCL_BYTES` | Cap inline JCL submit size |
 | TLS verification | `ZOSMF_REJECT_UNAUTHORIZED=true` | Enforce certificate validation (default `true`) |
+
+### Enterprise features
+
+Four scale-up capabilities build on these controls — see
+[docs/enterprise.md](./docs/enterprise.md) for the full guide and
+[config/policy.example.yaml](./config/policy.example.yaml) for a worked policy:
+
+- **Multi-environment support** — name several systems (DEV/TEST/UAT/PROD,
+  multiple LPARs) via a policy file or `ZOSMF_ENVIRONMENTS`; every tool takes
+  an `environment` argument; each environment carries its own credentials and
+  policy, e.g. `readOnly: true` on PROD.
+- **Policy-as-code & RBAC** — one YAML file (`SECURITY_POLICY_FILE`) maps
+  roles to tool allow/deny lists, dataset/USS globs, change-ticket rules, and
+  users to roles per environment; `${env:VAR}` keeps credentials out of the
+  file; unknown users fail closed.
+- **Audit & SIEM** — structured JSON audit records with correlation ids (user,
+  MCP client, tool, redacted arguments, outcome, duration, result size),
+  exported to a file, Splunk HEC, any HTTP webhook (ELK/syslog bridges), or
+  OpenTelemetry. Records are SHA-256 hash-chained (tamper-evident); verify
+  with `npm run verify:audit`.
+- **Data protection** — PII, credit-card numbers (Luhn-validated), SSNs,
+  embedded secrets, JWTs, and private keys are masked in job output and
+  dataset/USS reads by default; policy classifications add per-resource
+  redaction rules, line caps, head/tail sampling, and role-gated access.
 
 ---
 
@@ -583,6 +615,7 @@ Agent: predict_batch_failures({ hours: 168 })
 
 - **[Website (GitHub Pages)](https://notharshhaa.github.io/mainframe-mcp-server/)** — overview, tools, setup, enterprise guide
 - [Configuration](./docs/configuration.md) — all environment variables
+- [Enterprise features](./docs/enterprise.md) — multi-environment, policy-as-code & RBAC, audit & SIEM, data protection
 - [Tools reference](./docs/tools-reference.md) — inputs, outputs, and error codes
 - [Deployment](./docs/deployment.md) — transports (stdio, HTTP+SSE), Docker, systemd
 - [Contributing](./CONTRIBUTING.md) — workflow, project layout, how to add a tool

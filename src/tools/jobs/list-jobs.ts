@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { ValidationError } from '../../utils/errors.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { formatJobList, textResult } from '../../utils/formatters.js';
 import { listJobs } from './shared.js';
 
@@ -34,11 +34,7 @@ const inputShape = {
 };
 
 export const registerListJobsTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'list_jobs',
-    'List z/OS batch jobs filtered by owner, name prefix, status, or return code. Supports result capping.',
-    inputShape,
-    securedHandler(ctx, 'list_jobs', async ({ owner, prefix, status, returnCode, maxResults }) => {
+  defineTool(server, ctx, 'list_jobs', 'List z/OS batch jobs filtered by owner, name prefix, status, or return code. Supports result capping.', inputShape, async ({ owner, prefix, status, returnCode, maxResults }) => {
       const normalizedOwner = (owner ?? '*').trim().toUpperCase();
       const normalizedPrefix = (prefix ?? '*').trim().toUpperCase();
 
@@ -88,6 +84,5 @@ export const registerListJobsTool: ToolRegistrar = (server, ctx) => {
           returnCode,
         }),
       );
-    }),
-  );
+    });
 };

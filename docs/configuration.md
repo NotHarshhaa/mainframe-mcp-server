@@ -198,6 +198,26 @@ All enterprise variables are optional. Tools return `CONFIG_ERROR` with setup gu
 | `SECURITY_AUDIT_LOGGING` | `true` | Log every tool invocation to stderr (SIEM-friendly JSON). |
 | `SECURITY_MAX_JCL_BYTES` | `65536` | Maximum inline JCL size for `submit_jcl`. |
 
+## Policy-as-code, multi-environment, audit & SIEM, data protection
+
+These controls back the four enterprise features — see
+[docs/enterprise.md](enterprise.md) for a full walkthrough and
+[config/policy.example.yaml](../config/policy.example.yaml) for a worked
+policy file.
+
+| Variable | Default | Description |
+|---|---|---|
+| `SECURITY_POLICY_FILE` | — | Path to a YAML policy file: roles → tools/dataset/USS patterns, users → roles, named environments, data classifications. |
+| `ZOSMF_ENVIRONMENTS` | — | JSON array of named z/OSMF endpoints, e.g. `[{"name":"prod","host":"...","token":"...","readOnly":true}]`. |
+| `ZOSMF_ENV` | — | Default environment used when a tool call omits the `environment` argument. |
+| `SECURITY_AUDIT_FILE` | — | NDJSON audit log file with a SHA-256 hash chain (tamper-evident; verify with `npm run verify:audit`). |
+| `SECURITY_AUDIT_SPLUNK_URL` / `SECURITY_AUDIT_SPLUNK_TOKEN` | — | Splunk HEC ingest URL + token for audit export. |
+| `SECURITY_AUDIT_WEBHOOK_URL` / `SECURITY_AUDIT_WEBHOOK_TOKEN` | — | Generic HTTP webhook (ELK ingest, syslog-over-HTTP, SIEM bridge). |
+| `SECURITY_AUDIT_OTLP_URL` | — | OpenTelemetry collector base URL (OTLP/JSON `/v1/logs`). |
+| `SECURITY_DATA_PROTECTION` | `true` | Mask PII/PCI/SSN/secrets in job output and dataset/USS reads. |
+| `SECURITY_REDACTION_RULES` | all built-ins | CSV of rule ids: `ssn,credit_card,email,secrets,jwt,private_key`. |
+| `SECURITY_REDACTION_STYLE` | `mask` | `mask` keeps the last 4 characters; `token` replaces with `[REDACTED:TYPE]`. |
+
 ## Local development from source
 
 Do not create a `.env` file for this server. Either:

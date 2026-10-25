@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { lookupAbend } from '../../utils/abend-codes.js';
 import { aggregateAbends, findFailedJobs } from './shared.js';
@@ -19,11 +19,7 @@ const inputShape = {
 };
 
 export const registerAbendSummaryTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'summarize_abends',
-    'Aggregate abend codes across recent failed jobs, with counts and a short description.',
-    inputShape,
-    securedHandler(ctx, 'summarize_abends', async ({ hours, owner }) => {
+  defineTool(server, ctx, 'summarize_abends', 'Aggregate abend codes across recent failed jobs, with counts and a short description.', inputShape, async ({ hours, owner }) => {
       const window = hours ?? 24;
       const failures = await findFailedJobs(ctx, window, owner ?? '*');
       const aggregated = aggregateAbends(failures);
@@ -47,6 +43,5 @@ export const registerAbendSummaryTool: ToolRegistrar = (server, ctx) => {
           },
         ]),
       );
-    }),
-  );
+    });
 };

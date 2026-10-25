@@ -7,7 +7,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { predictBatchFailures } from './shared.js';
 
@@ -30,11 +30,7 @@ const inputShape = {
 };
 
 export const registerPredictFailuresTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'predict_batch_failures',
-    'Predict batch failure risk by scoring job names with recurring failures using a recency-weighted algorithm. Returns risk levels (LOW/MEDIUM/HIGH/CRITICAL), failure trends, and top abend codes.',
-    inputShape,
-    securedHandler(ctx, 'predict_batch_failures', async ({ hours, minFailures }) => {
+  defineTool(server, ctx, 'predict_batch_failures', 'Predict batch failure risk by scoring job names with recurring failures using a recency-weighted algorithm. Returns risk levels (LOW/MEDIUM/HIGH/CRITICAL), failure trends, and top abend codes.', inputShape, async ({ hours, minFailures }) => {
       const window = hours ?? 168;
       const threshold = minFailures ?? 1;
       const risks = await predictBatchFailures(ctx, window, threshold);
@@ -107,6 +103,5 @@ export const registerPredictFailuresTool: ToolRegistrar = (server, ctx) => {
           { heading: 'Trend analysis', body: trendBody },
         ]),
       );
-    }),
-  );
+    });
 };

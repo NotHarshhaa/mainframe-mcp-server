@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { formatJobStatus, formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { fetchJob, isFailedJob } from '../jobs/shared.js';
 import { extractAbendCode } from '../../utils/abend-codes.js';
 
@@ -14,11 +14,7 @@ const inputShape = {
 };
 
 export const registerCompareJobsTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'compare_jobs',
-    'Compare status, return code, and failure indicators for two jobs side by side.',
-    inputShape,
-    securedHandler(ctx, 'compare_jobs', async ({ jobId1, jobId2 }) => {
+  defineTool(server, ctx, 'compare_jobs', 'Compare status, return code, and failure indicators for two jobs side by side.', inputShape, async ({ jobId1, jobId2 }) => {
       const [job1, job2] = await Promise.all([fetchJob(ctx, jobId1), fetchJob(ctx, jobId2)]);
 
       const rows = [
@@ -52,6 +48,5 @@ export const registerCompareJobsTool: ToolRegistrar = (server, ctx) => {
           },
         ]),
       );
-    }),
-  );
+    });
 };

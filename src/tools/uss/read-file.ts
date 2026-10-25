@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { formatContentHeader, textResult, truncateLines } from '../../utils/formatters.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { normalizePath, readUssFile } from './shared.js';
 
 const inputShape = {
@@ -25,14 +25,7 @@ const inputShape = {
 };
 
 export const registerReadFileTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'read_uss_file',
-    'Read the contents of a USS file. Supports custom line limits and text grep filtering.',
-    inputShape,
-    securedHandler(
-      ctx,
-      'read_uss_file',
-      async ({ path, maxLines, searchText }) => {
+  defineTool(server, ctx, 'read_uss_file', 'Read the contents of a USS file. Supports custom line limits and text grep filtering.', inputShape, async ({ path, maxLines, searchText }) => {
         const normalizedPath = normalizePath(path);
 
         let raw = await readUssFile(ctx, normalizedPath);
@@ -56,8 +49,5 @@ export const registerReadFileTool: ToolRegistrar = (server, ctx) => {
 
         const header = formatContentHeader(normalizedPath, truncated, totalLines, cap);
         return textResult(header + grepNote + (grepNote ? '\n' : '') + text);
-      },
-      ({ path }) => ({ ussPath: path }),
-    ),
-  );
+      }, ({ path }) => ({ ussPath: path }));
 };

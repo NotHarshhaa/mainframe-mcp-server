@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { ValidationError } from '../../utils/errors.js';
 import { formatJobStatus, formatSpoolFiles, textResult } from '../../utils/formatters.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { assertValidJobId, fetchJob, fetchSpoolFiles, normalizeJobId } from './shared.js';
 
 const inputShape = {
@@ -21,11 +21,7 @@ const inputShape = {
 };
 
 export const registerGetJobStatusTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'get_job_status',
-    'Get the current status, return code, and failure indicator for a specific job. Optionally includes spool file inventory.',
-    inputShape,
-    securedHandler(ctx, 'get_job_status', async ({ jobId, jobName, includeSpoolSummary }) => {
+  defineTool(server, ctx, 'get_job_status', 'Get the current status, return code, and failure indicator for a specific job. Optionally includes spool file inventory.', inputShape, async ({ jobId, jobName, includeSpoolSummary }) => {
       assertValidJobId(jobId);
       const normalizedId = normalizeJobId(jobId);
 
@@ -48,6 +44,5 @@ export const registerGetJobStatusTool: ToolRegistrar = (server, ctx) => {
       }
 
       return textResult(output);
-    }),
-  );
+    });
 };

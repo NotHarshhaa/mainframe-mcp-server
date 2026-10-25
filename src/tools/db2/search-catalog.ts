@@ -3,7 +3,7 @@
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { renderTable, textResult } from '../../utils/formatters.js';
 import { searchDb2Catalog } from './shared.js';
 
@@ -29,11 +29,7 @@ const inputShape = {
 };
 
 export const registerSearchDb2CatalogTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'search_db2_catalog',
-    'Search the Db2 catalog for tables, views, or aliases matching a name pattern. Includes row count, creation date, and remarks.',
-    inputShape,
-    securedHandler(ctx, 'search_db2_catalog', async ({ pattern, schema, type, maxResults }) => {
+  defineTool(server, ctx, 'search_db2_catalog', 'Search the Db2 catalog for tables, views, or aliases matching a name pattern. Includes row count, creation date, and remarks.', inputShape, async ({ pattern, schema, type, maxResults }) => {
       const entries = await searchDb2Catalog(ctx, pattern, schema, type, maxResults);
 
       if (entries.length === 0) {
@@ -66,6 +62,5 @@ export const registerSearchDb2CatalogTool: ToolRegistrar = (server, ctx) => {
         `Db2 Catalog${filterLine} — ${entries.length} matches\n\n` +
           renderTable(['Schema', 'Name', 'Type', 'Rows', 'Created', 'Remarks'], rows),
       );
-    }),
-  );
+    });
 };

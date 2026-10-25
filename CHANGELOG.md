@@ -4,6 +4,54 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Multi-environment support.** Define named systems (DEV/TEST/UAT/PROD,
+  multiple LPARs/sysplexes) in the policy file or via `ZOSMF_ENVIRONMENTS`
+  (JSON); the base `ZOSMF_*` connection remains available as `default`. Every
+  tool accepts an optional `environment` argument; each environment carries
+  its own credentials, lazily-cached Zowe session, and policy surface —
+  per-environment `readOnly` (e.g. read-only PROD), `allowedRoles`, and
+  per-user environment restrictions. `ZOSMF_ENV` / `defaults.environment`
+  select the default. New **`list_environments`** tool enumerates targets.
+- **Policy-as-code and RBAC** (`SECURITY_POLICY_FILE`). A single YAML file
+  maps roles to tool allow/deny globs, dataset/USS patterns, per-role
+  read-only mode and change-ticket patterns, and read line caps (with role
+  inheritance: child allow lists replace, deny lists and readOnly accumulate
+  downward). `users:` maps usernames to roles per environment; unmapped users
+  fall back to `defaults.role` or fail closed. `${env:VAR}` interpolation
+  keeps credentials out of the file; any structural error aborts startup.
+  Env-var controls continue to apply — the policy only narrows. New
+  **`whoami`** tool shows the acting identity, resolved role, and effective
+  policy. On SSE, the `X-MCP-User` request header supplies the acting
+  identity for gateway deployments.
+- **Audit & SIEM export.** One structured JSON audit record per tool call with
+  correlation id, user, MCP client (from the `initialize` handshake),
+  transport, environment, redacted arguments, resource references, outcome
+  (`success`/`error`/`blocked`), error code, duration, and result size. Sinks:
+  NDJSON file (`SECURITY_AUDIT_FILE`), Splunk HEC
+  (`SECURITY_AUDIT_SPLUNK_URL`/`_TOKEN`), generic HTTP webhook
+  (`SECURITY_AUDIT_WEBHOOK_URL`/`_TOKEN`), and OpenTelemetry OTLP/JSON
+  (`SECURITY_AUDIT_OTLP_URL`). HTTP sinks are batched, time-boxed, and
+  best-effort — a dead collector never blocks a tool call. Records are
+  SHA-256 hash-chained (tamper-evident); `npm run verify:audit` (or
+  `node tools/verify-audit-log.mjs`) detects any edit, deletion, or
+  reordering and reports the first broken sequence number.
+- **Data protection.** Built-in redaction rules (`ssn`, `credit_card` with
+  Luhn validation, `email`, `secrets` such as `PASSWORD=`/`api_key:`
+  assignments, `jwt`, `private_key` blocks) mask job output and dataset/USS
+  reads by default (`SECURITY_DATA_PROTECTION`, style via
+  `SECURITY_REDACTION_STYLE`, rule set via `SECURITY_REDACTION_RULES`);
+  masked output carries an explicit `[data protection: …]` footer. Policy
+  `classifications:` add per-resource behavior: rule overrides, hard line
+  caps (`maxLines`), head/tail `sample` of bulk reads, and role-gated access
+  to classified resources.
+- Policy roles can now require (or relax) change tickets per role:
+  `changeTicketPattern` on a role overrides
+  `SECURITY_CHANGE_TICKET_PATTERN` for that role's `submit_jcl` calls.
+
 ## [2.8.0] — 2026-10-25
 
 ### Added

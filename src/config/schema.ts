@@ -6,6 +6,7 @@
  * mutually-exclusive auth options.
  */
 import { z } from 'zod';
+import { DEFAULT_REDACTION_RULES } from '../utils/redaction.js';
 
 /** Coerce common truthy/falsy string env values into a boolean. */
 const booleanFromEnv = z
@@ -42,6 +43,11 @@ export const configSchema = z
       // in the config file are honored when present).
       teamConfig: z.string().optional(),
       profile: z.string().optional(),
+      // Multi-environment: JSON array of named systems, e.g.
+      // [{"name":"dev","host":"dev.example.com","user":"SVC","password":"..."}, ...]
+      environments: z.string().optional(),
+      // Environment used when a tool call does not name one (ZOSMF_ENV).
+      activeEnvironment: z.string().optional(),
     }),
     mcp: z.object({
       name: z.string().default('mainframe-mcp-server'),
@@ -105,6 +111,22 @@ export const configSchema = z
       writeDays: z.string().optional(),
       // IANA timezone for the write window (default UTC).
       writeWindowTz: z.string().optional(),
+      // Policy-as-code: YAML file with roles, RBAC, environments, and data
+      // classifications (see docs/enterprise.md and config/policy.example.yaml).
+      policyFile: z.string().optional(),
+      // SIEM audit export. File (NDJSON, tamper-evident hash chain) plus
+      // optional Splunk HEC / generic webhook / OpenTelemetry OTLP sinks.
+      auditFile: z.string().optional(),
+      auditSplunkUrl: z.string().optional(),
+      auditSplunkToken: z.string().optional(),
+      auditWebhookUrl: z.string().optional(),
+      auditWebhookToken: z.string().optional(),
+      auditOtlpUrl: z.string().optional(),
+      // Data protection: mask PII/PCI/SSN/secrets in job output and dataset
+      // and USS reads. Rule ids and style are tunable.
+      dataProtection: booleanFromEnv.default(true),
+      redactionRules: z.string().optional(),
+      redactionStyle: z.enum(['mask', 'token']).default('mask'),
     }),
   })
   .superRefine((cfg, ctx) => {
@@ -137,6 +159,34 @@ export const configSchema = z
           path: ['security', 'changeTicketPattern'],
         });
       }
+    }
+    if (cfg.security.redactionRules) {
+      const valid = new Set<string>(DEFAULT_REDACTION_RULES);
+      const invalid = cfg.security.redactionRules
+        .split(',')
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0 && !valid.has(id));
+      if (invalid.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `SECURITY_REDACTION_RULES contains unknown rule(s): ${invalid.join(', ')}. Valid rules: ${[...valid].join(', ')}.`,
+          path: ['security', 'redactionRules'],
+        });
+      }
+    }
+    if (cfg.security.auditSplunkUrl && !cfg.security.auditSplunkToken) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'SECURITY_AUDIT_SPLUNK_TOKEN is required when SECURITY_AUDIT_SPLUNK_URL is set.',
+        path: ['security', 'auditSplunkToken'],
+      });
+    }
+    if (cfg.security.auditSplunkToken && !cfg.security.auditSplunkUrl) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'SECURITY_AUDIT_SPLUNK_URL is required when SECURITY_AUDIT_SPLUNK_TOKEN is set.',
+        path: ['security', 'auditSplunkUrl'],
+      });
     }
   });
 

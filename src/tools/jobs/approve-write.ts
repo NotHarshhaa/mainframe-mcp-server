@@ -11,7 +11,7 @@ import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import { formatStructuredResponse, textResult } from '../../utils/formatters.js';
-import { securedHandler } from '../../utils/tool-handler.js';
+import { defineTool } from '../../utils/define-tool.js';
 import { parseWriteWindow, assertWithinWriteWindow } from '../../utils/write-window.js';
 import { takePending } from './pending-approvals.js';
 import { submitPreparedJcl } from './submit-jcl.js';
@@ -24,11 +24,7 @@ const inputShape = {
 };
 
 export const registerApproveWriteTool: ToolRegistrar = (server, ctx) => {
-  server.tool(
-    'approve_write',
-    'Approve and execute a pending JCL submission (human-in-the-loop). Requires the one-time token from submit_jcl; active only when SECURITY_WRITE_APPROVAL=true.',
-    inputShape,
-    securedHandler(ctx, 'approve_write', async ({ token }) => {
+  defineTool(server, ctx, 'approve_write', 'Approve and execute a pending JCL submission (human-in-the-loop). Requires the one-time token from submit_jcl; active only when SECURITY_WRITE_APPROVAL=true.', inputShape, async ({ token }) => {
       if (!ctx.config.security.writeApproval) {
         throw new ValidationError(
           'The approval flow is disabled (SECURITY_WRITE_APPROVAL=false). Use submit_jcl directly.',
@@ -64,6 +60,5 @@ export const registerApproveWriteTool: ToolRegistrar = (server, ctx) => {
           { heading: 'Pre-flight scan (from original request)', body: scanBody },
         ]),
       );
-    }),
-  );
+    });
 };
