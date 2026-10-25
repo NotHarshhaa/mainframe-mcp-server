@@ -110,31 +110,71 @@ jobs:
           chmod +x mcp-publisher
           ./mcp-publisher --version
 
+      - name: Wait until npm indexes the new version (MCP registry validates against npm)
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          for attempt in $(seq 1 18); do
+            FOUND=$(npm view "$PKG@$VER" version 2>/dev/null || true)
+            if [ "$FOUND" = "$VER" ]; then
+              echo "npm $PKG@$VER is visible (attempt $attempt)"
+              exit 0
+            fi
+            echo "attempt $attempt: $PKG@$VER not visible on npm yet — waiting 10s"
+            sleep 10
+          done
+          echo "::warning::$PKG@$VER still not visible on npm after 180s — attempting MCP registry publish anyway"
+
       - name: Publish to the MCP registry (skipped when version already listed — rerun safe)
         run: |
           PKG=$(node -p "require('./server.json').name")
           VER=$(node -p "require('./server.json').packages[0].version")
           ENC=$(node -p "encodeURIComponent(process.argv[1])" "$PKG")
-          LISTED=$(curl -s "https://registry.modelcontextprotocol.io/v0/servers?search=$ENC" | node -e "
-            let d = '';
-            process.stdin.on('data', (c) => (d += c)).on('end', () => {
-              try {
-                const j = JSON.parse(d);
-                const hit = (j.servers || []).some(
-                  (s) => s.server && s.server.name === process.argv[1] && s.server.version === process.argv[2],
-                );
-                console.log(hit ? 'yes' : 'no');
-              } catch {
-                console.log('no');
-              }
-            });
-          " "$PKG" "$VER")
-          if [ "$LISTED" = "yes" ]; then
+          check_listed() {
+            curl -s "https://registry.modelcontextprotocol.io/v0/servers?search=$ENC" | node -e "
+              let d = '';
+              process.stdin.on('data', (c) => (d += c)).on('end', () => {
+                try {
+                  const j = JSON.parse(d);
+                  const hit = (j.servers || []).some(
+                    (s) => s.server && s.server.name === process.argv[1] && s.server.version === process.argv[2],
+                  );
+                  console.log(hit ? 'yes' : 'no');
+                } catch {
+                  console.log('no');
+                }
+              });
+            " "$PKG" "$VER"
+          }
+          if [ "$(check_listed)" = "yes" ]; then
             echo "$PKG@$VER already listed in the MCP registry — skipping publish"
-          else
-            ./mcp-publisher validate server.json
-            ./mcp-publisher login github-oidc
-            ./mcp-publisher publish server.json
+            exit 0
+          fi
+          ./mcp-publisher validate server.json
+          ./mcp-publisher login github-oidc
+          # The registry validates the npm version exists; npm indexing can lag
+          # the publish by a minute or two. Retry with backoff, and treat a
+          # "now listed" state as success (covers partial-success retries).
+          PUBLISHED=no
+          for attempt in 1 2 3 4 5 6; do
+            if ./mcp-publisher publish server.json; then
+              PUBLISHED=yes
+              break
+            fi
+            echo "MCP registry publish attempt $attempt failed"
+            if [ "$(check_listed)" = "yes" ]; then
+              echo "$PKG@$VER is now listed — treating as success"
+              PUBLISHED=yes
+              break
+            fi
+            if [ "$attempt" -lt 6 ]; then
+              echo "retrying in 30s (npm indexing lag)"
+              sleep 30
+            fi
+          done
+          if [ "$PUBLISHED" != "yes" ]; then
+            echo "::error::MCP registry publish failed after 6 attempts (npm indexing lag). Re-run this workflow — the npm and MCP-registry steps are rerun-safe."
+            exit 1
           fi
 
   # ---------------------------------------------------------------------------
