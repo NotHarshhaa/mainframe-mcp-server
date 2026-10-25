@@ -1,0 +1,45 @@
+{{- if and .Values.security.auditSplunkToken (not .Values.credentials.create) (not .Values.credentials.existingSecret) }}
+{{- fail "security.auditSplunkToken is set but credentials.create=false and credentials.existingSecret is empty — the token would never reach the pod." }}
+{{- end }}
+{{- if and .Values.security.auditWebhookToken (not .Values.credentials.create) (not .Values.credentials.existingSecret) }}
+{{- fail "security.auditWebhookToken is set but credentials.create=false and credentials.existingSecret is empty — the token would never reach the pod." }}
+{{- end }}
+{{- if and (not .Values.zosmf.host) (not .Values.credentials.existingSecret) }}
+
+INFORMATION: zosmf.host is empty and no existingSecret was provided — the pod
+will fail to start until ZOSMF_HOST reaches it (set .Values.zosmf.host, or put
+ZOSMF_HOST in the secret).
+{{- end }}
+{{- if and .Values.zosmf.password .Values.zosmf.token }}
+
+WARNING: both zosmf.password and zosmf.token are set — the token wins
+(basic auth is only used as a fallback).
+{{- end }}
+
+Thank you for installing {{ .Chart.Name }}.
+
+The server runs the SSE transport. Endpoints on the service
+({{ include "mainframe-mcp-server.fullname" . }}:{{ .Values.service.port }}):
+  /sse        MCP event stream
+  /messages   MCP message POST endpoint
+  /health     liveness/readiness
+
+{{- if .Values.ingress.enabled }}
+Ingress host: {{ (index .Values.ingress.hosts 0).host }}
+{{- end }}
+
+Verify the deployment:
+
+  kubectl rollout status deployment/{{ include "mainframe-mcp-server.fullname" . }}
+  kubectl get pods -l 'app.kubernetes.io/name={{ include "mainframe-mcp-server.name" . }}'
+
+Point your MCP client at the SSE endpoint, then check the acting identity and
+policy from any MCP client: whoami, list_environments, security_posture_summary.
+
+Supply-chain assurance (verify before you trust the image):
+
+  cosign verify ghcr.io/notharshhaa/mainframe-mcp-server:{{ .Chart.AppVersion }} \
+    --certificate-identity-regexp 'https://github.com/NotHarshhaa/mainframe-mcp-server/\.github/workflows/release\.yml@refs/tags/v' \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+SBOMs (SPDX + CycloneDX) are attached to each GitHub release.

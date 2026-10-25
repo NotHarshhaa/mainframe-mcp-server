@@ -37,3 +37,30 @@ jobs:
       - name: Unit tests
         run: npm test
         # Integration tests are env-gated (RUN_INTEGRATION=1) and stay skipped in CI.
+
+  docker:
+    runs-on: ubuntu-latest
+    # Image build smoke: catches Dockerfile breakage before release day.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (loaded locally, no push)
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: mainframe-mcp-server:ci
+
+      - name: Verify the image runs as non-root
+        run: |
+          USER=$(docker run --rm --entrypoint sh mainframe-mcp-server:ci -c 'id -u')
+          if [ "$USER" = "0" ]; then
+            echo "::error::Container image runs as root"
+            exit 1
+          fi
+          echo "Image runs as uid $USER"

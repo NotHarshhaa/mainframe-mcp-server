@@ -1,0 +1,11 @@
+{{- if and (not .Values.policy.existingConfigMap) .Values.policy.inline }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mainframe-mcp-server.fullname" . }}-policy
+  labels:
+    {{- include "mainframe-mcp-server.labels" . | nindent 4 }}
+data:
+  policy.yaml: |
+{{ .Values.policy.inline | indent 4 }}
+{{- end }}

@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Official packaging with supply-chain assurance.**
+  - **Signed, SBOM-attached container image**: releases publish
+    `ghcr.io/notharshhaa/mainframe-mcp-server` (version/minor/SHA tags), built
+    non-root with OCI labels and an SSE healthcheck, signed with **Sigstore
+    keyless cosign** (sign-by-digest, verified in-workflow), with BuildKit
+    provenance (`mode=max`) and SBOM attestations, plus SPDX and CycloneDX
+    SBOMs attached to the GitHub release.
+  - **npm provenance**: the package now publishes with `--provenance`
+    (SLSA build provenance via GitHub Actions OIDC) — visible on npmjs.com
+    and verifiable with `npm audit signatures`.
+  - **Helm chart** (`helm/mainframe-mcp-server/`): SSE deployment hardened by
+    default (non-root, read-only root filesystem, dropped capabilities, no
+    service-account token), with values for the z/OSMF connection, BYO
+    credentials Secret, policy-as-code ConfigMap mount, SIEM audit sinks,
+    probes, ingress, and optional persistence for the file audit sink.
+  - **Release assets**: npm tarball, package + image SBOMs (with cosign
+    signatures), and a signed `sha256sums.txt` manifest on every GitHub
+    release.
+  - The Dockerfile keeps `USER node`; docker-compose now ships hardened
+    defaults (`read_only`, `cap_drop: ALL`, `no-new-privileges`, tmpfs) and
+    defaults to the official image; CI builds the image on every push and
+    fails if it runs as root.
+
 - **Console & JES coverage.** MVS operator commands through the z/OSMF Console
   API using a dynamically activated extended MCS console
   (`ZOSMF_CONSOLE_NAME`): `issue_console_command` (with follow-up message

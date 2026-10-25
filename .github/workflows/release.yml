@@ -7,11 +7,22 @@ on:
 
 permissions:
   contents: write # create the GitHub release
-  id-token: write # MCP registry: mcp-publisher login github-oidc
+  id-token: write # npm provenance, MCP registry OIDC login, cosign keyless signing
+
+env:
+  REGISTRY: ghcr.io
 
 jobs:
-  publish:
+  # ---------------------------------------------------------------------------
+  # npm + MCP registry (with SLSA provenance and package SBOM)
+  # ---------------------------------------------------------------------------
+  npm:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm --provenance and mcp-publisher github-oidc
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -21,6 +32,10 @@ jobs:
           node-version: 22
           cache: npm
           registry-url: https://registry.npmjs.org/
+
+      - name: Resolve version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
         run: npm ci
@@ -43,7 +58,7 @@ jobs:
           fi
           echo "Releasing version $TAG"
 
-      - name: Publish to npm (skipped when version already exists — rerun safe)
+      - name: Publish to npm with provenance (skipped when version already exists — rerun safe)
         run: |
           PKG=$(node -p "require('./package.json').name")
           VER=$(node -p "require('./package.json').version")
@@ -51,10 +66,41 @@ jobs:
           if [ "$PUBLISHED" = "$VER" ]; then
             echo "$PKG@$VER already on npm — skipping publish"
           else
-            npm publish --access public
+            npm publish --access public --provenance
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Pack the published tarball for the release
+        run: |
+          npm pack --pack-destination "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP"/*.tgz "$RUNNER_TEMP/package.tgz"
+
+      - name: SBOM of the npm package (SPDX)
+        uses: anchore/sbom-action@v0
+        with:
+          artifact: ${{ runner.temp }}/package.tgz
+          format: spdx-json
+          output-file: package-sbom.spdx.json
+          upload-artifact: false
+
+      - name: SBOM of the npm package (CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          artifact: ${{ runner.temp }}/package.tgz
+          format: cyclonedx-json
+          output-file: package-sbom.cdx.json
+          upload-artifact: false
+
+      - name: Upload release assets (npm)
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-release-assets
+          path: |
+            ${{ runner.temp }}/package.tgz
+            package-sbom.spdx.json
+            package-sbom.cdx.json
+          if-no-files-found: error
 
       - name: Install mcp-publisher (official registry CLI)
         run: |
@@ -91,11 +137,136 @@ jobs:
             ./mcp-publisher publish server.json
           fi
 
+  # ---------------------------------------------------------------------------
+  # Official container image: GHCR, SLSA attestations, SBOM, keyless signing
+  # ---------------------------------------------------------------------------
+  container:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # cosign keyless signing
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute lowercase image name
+        run: echo "IMAGE=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=tag
+            type=sha
+
+      - name: Build and push image (with provenance + SBOM attestations)
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Install cosign (Sigstore keyless)
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign the image (keyless, by digest)
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          cosign sign --yes "${IMAGE}@${DIGEST}"
+          echo "Signed ${IMAGE}@${DIGEST}"
+
+      - name: SBOM of the image (SPDX)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output-file: image-sbom.spdx.json
+          upload-artifact: false
+
+      - name: SBOM of the image (CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+          format: cyclonedx-json
+          output-file: image-sbom.cdx.json
+          upload-artifact: false
+
+      - name: Sign the image SBOMs
+        run: |
+          cosign sign-blob --yes --output-signature image-sbom.spdx.json.sig image-sbom.spdx.json
+          cosign sign-blob --yes --output-signature image-sbom.cdx.json.sig image-sbom.cdx.json
+
+      - name: Verify our own signature (fail the release if it does not check out)
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          cosign verify "${IMAGE}@${DIGEST}" \
+            --certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY//./\\.}/\\.github/workflows/release\\.yml@refs/tags/" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+      - name: Upload release assets (container)
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-release-assets
+          path: |
+            image-sbom.spdx.json
+            image-sbom.spdx.json.sig
+            image-sbom.cdx.json
+            image-sbom.cdx.json.sig
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # GitHub release: notes, checksums, signed assets
+  # ---------------------------------------------------------------------------
+  github-release:
+    runs-on: ubuntu-latest
+    needs: [npm, container]
+    permissions:
+      contents: write
+      id-token: write # cosign keyless sign-blob for checksums
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+
+      - name: Generate checksums and sign them
+        working-directory: assets
+        run: |
+          sha256sum package.tgz package-sbom.spdx.json package-sbom.cdx.json \
+            image-sbom.spdx.json image-sbom.cdx.json > sha256sums.txt
+          cosign sign-blob --yes --output-signature sha256sums.txt.sig sha256sums.txt
+
       - name: Create GitHub release (notes from CHANGELOG + auto-generated commits)
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          TAG: ${{ github.ref_name }}
         run: |
-          TAG="$GITHUB_REF_NAME"
           VER="${TAG#v}"
           PKG=$(node -p "require('./package.json').name")
 
@@ -115,11 +286,34 @@ jobs:
             : > release-notes.md
           fi
 
+          cat >> release-notes.md <<EOF
+
+          ## Supply-chain assurance
+
+          - npm package published **with SLSA provenance** — verify on npmjs.com ("Provenance" badge)
+          - Container image: \`ghcr.io/notharshhaa/mainframe-mcp-server:$VER\` — signed with Sigstore keyless; verify with:
+
+                cosign verify ghcr.io/notharshhaa/mainframe-mcp-server:$VER \\
+                  --certificate-identity-regexp 'https://github.com/$PKG/\.github/workflows/release\.yml@refs/tags/' \\
+                  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+          - SBOMs (SPDX + CycloneDX) attached below for the npm package and the container image
+          - \`sha256sums.txt\` lists all assets; its signature is in \`sha256sums.txt.sig\`
+          EOF
+
+          ASSETS=(assets/package.tgz assets/package-sbom.spdx.json assets/package-sbom.cdx.json \
+            assets/image-sbom.spdx.json assets/image-sbom.spdx.json.sig \
+            assets/image-sbom.cdx.json assets/image-sbom.cdx.json.sig \
+            assets/sha256sums.txt assets/sha256sums.txt.sig)
+
           if gh release view "$TAG" > /dev/null 2>&1; then
-            echo "Release $TAG already exists — updating notes"
+            echo "Release $TAG already exists — updating notes and assets"
             gh release edit "$TAG" --title "$PKG v$VER" --notes-file release-notes.md
+            for asset in "${ASSETS[@]}"; do
+              gh release upload "$TAG" "$asset" --clobber
+            done
           else
-            gh release create "$TAG" \
+            gh release create "$TAG" "${ASSETS[@]}" \
               --verify-tag \
               --title "$PKG v$VER" \
               --notes-file release-notes.md \
@@ -128,6 +322,7 @@ jobs:
 
       - name: Release summary
         run: |
-          echo "Published @notharshhaa/mainframe-mcp-server@${GITHUB_REF_NAME#v}"
-          echo "- npm: https://www.npmjs.com/package/@notharshhaa/mainframe-mcp-server"
+          echo "Released @notharshhaa/mainframe-mcp-server@${GITHUB_REF_NAME#v}"
+          echo "- npm (with provenance): https://www.npmjs.com/package/@notharshhaa/mainframe-mcp-server"
           echo "- MCP registry: https://registry.modelcontextprotocol.io"
+          echo "- Image: ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_REF_NAME#v} (signed, SBOM-attached)"

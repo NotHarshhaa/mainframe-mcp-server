@@ -269,6 +269,33 @@ See [docs/tools-reference.md](./docs/tools-reference.md) for full input/output d
 
 ---
 
+## Packaging & supply chain
+
+Everything a security team asks for on day one is built into the release pipeline
+(see [docs/deployment.md — Supply-chain assurance](./docs/deployment.md#supply-chain-assurance)):
+
+| Artifact | Where | Assurance |
+|---|---|---|
+| npm package | `@notharshhaa/mainframe-mcp-server` | Published **with SLSA provenance** (GitHub Actions OIDC) — `npm audit signatures` |
+| Official image | `ghcr.io/notharshhaa/mainframe-mcp-server` (version / minor / SHA tags) | **Non-root**, signed with **Sigstore keyless cosign**, BuildKit provenance `mode=max` + SBOM attestations |
+| SBOMs | GitHub release assets | SPDX **and** CycloneDX for both the package and the image |
+| Checksums | `sha256sums.txt` on the release | Signed with cosign (`sha256sums.txt.sig`) |
+| Helm chart | [`helm/mainframe-mcp-server/`](./helm/mainframe-mcp-server/README.md) | Non-root + read-only rootfs + dropped caps by default; policy file and SIEM sinks wired via values |
+
+Verify the image before you run it:
+
+```bash
+cosign verify ghcr.io/notharshhaa/mainframe-mcp-server:2.8.0 \
+  --certificate-identity-regexp 'https://github.com/NotHarshhaa/mainframe-mcp-server/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+The docker-compose file and the Helm chart ship hardened defaults
+(`read_only`, `cap_drop: ALL`, `no-new-privileges`, seccomp `RuntimeDefault`,
+non-root uid 1000).
+
+---
+
 ## Enterprise security
 
 Security is enforced at the **MCP server layer**, in addition to RACF/z/OSMF permissions on the mainframe itself. Every control below is enabled through environment variables:

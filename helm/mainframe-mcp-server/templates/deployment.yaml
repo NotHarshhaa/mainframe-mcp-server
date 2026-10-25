@@ -1,0 +1,198 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mainframe-mcp-server.fullname" . }}
+  labels:
+    {{- include "mainframe-mcp-server.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "mainframe-mcp-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "mainframe-mcp-server.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "mainframe-mcp-server.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "mainframe-mcp-server.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: MCP_TRANSPORT
+              value: {{ .Values.mcp.transport | quote }}
+            - name: MCP_SSE_PORT
+              value: {{ .Values.mcp.ssePort | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.mcp.logLevel | quote }}
+            {{- if .Values.zosmf.host }}
+            - name: ZOSMF_HOST
+              value: {{ .Values.zosmf.host | quote }}
+            {{- else if .Values.credentials.existingSecret }}
+            - name: ZOSMF_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "mainframe-mcp-server.secretName" . }}
+                  key: ZOSMF_HOST
+            {{- end }}
+            - name: ZOSMF_PORT
+              value: {{ .Values.zosmf.port | quote }}
+            {{- if .Values.zosmf.basePath }}
+            - name: ZOSMF_BASE_PATH
+              value: {{ .Values.zosmf.basePath | quote }}
+            {{- end }}
+            {{- if .Values.zosmf.token }}
+            - name: ZOSMF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "mainframe-mcp-server.secretName" . }}
+                  key: {{ .Values.credentials.tokenKey }}
+            {{- else if .Values.credentials.existingSecret }}
+            - name: ZOSMF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentials.existingSecret }}
+                  key: {{ .Values.credentials.tokenKey }}
+            {{- end }}
+            {{- if and (not .Values.zosmf.token) .Values.zosmf.password }}
+            - name: ZOSMF_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "mainframe-mcp-server.secretName" . }}
+                  key: {{ .Values.credentials.passwordKey }}
+            {{- else if and (not .Values.zosmf.token) .Values.credentials.existingSecret }}
+            - name: ZOSMF_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentials.existingSecret }}
+                  key: {{ .Values.credentials.passwordKey }}
+            {{- end }}
+            {{- if and .Values.zosmf.user (not .Values.zosmf.token) }}
+            - name: ZOSMF_USER
+              value: {{ .Values.zosmf.user | quote }}
+            {{- end }}
+            - name: ZOSMF_TOKEN_TYPE
+              value: {{ .Values.zosmf.tokenType | quote }}
+            - name: ZOSMF_REJECT_UNAUTHORIZED
+              value: {{ .Values.zosmf.rejectUnauthorized | quote }}
+            {{- if .Values.zosmf.userId }}
+            - name: ZOSMF_USER_ID
+              value: {{ .Values.zosmf.userId | quote }}
+            - name: ZOSMF_PASSTICKET_APP
+              value: {{ .Values.zosmf.passticketApp | quote }}
+            {{- end }}
+            - name: SECURITY_READ_ONLY
+              value: {{ .Values.security.readOnly | quote }}
+            - name: SECURITY_AUDIT_LOGGING
+              value: {{ .Values.security.auditLogging | quote }}
+            - name: SECURITY_DATA_PROTECTION
+              value: {{ .Values.security.dataProtection | quote }}
+            {{- $policyCm := include "mainframe-mcp-server.policyConfigMap" . }}
+            {{- if $policyCm }}
+            - name: SECURITY_POLICY_FILE
+              value: /etc/mainframe-mcp/policy.yaml
+            {{- end }}
+            {{- if .Values.security.auditFile }}
+            - name: SECURITY_AUDIT_FILE
+              value: {{ .Values.security.auditFile | quote }}
+            {{- end }}
+            {{- if .Values.security.auditSplunkUrl }}
+            - name: SECURITY_AUDIT_SPLUNK_URL
+              value: {{ .Values.security.auditSplunkUrl | quote }}
+            {{- end }}
+            {{- if .Values.security.auditSplunkToken }}
+            - name: SECURITY_AUDIT_SPLUNK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "mainframe-mcp-server.secretName" . }}
+                  key: {{ .Values.credentials.splunkTokenKey }}
+            {{- end }}
+            {{- if .Values.security.auditWebhookUrl }}
+            - name: SECURITY_AUDIT_WEBHOOK_URL
+              value: {{ .Values.security.auditWebhookUrl | quote }}
+            {{- end }}
+            {{- if .Values.security.auditWebhookToken }}
+            - name: SECURITY_AUDIT_WEBHOOK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "mainframe-mcp-server.secretName" . }}
+                  key: {{ .Values.credentials.webhookTokenKey }}
+            {{- end }}
+            {{- if .Values.security.auditOtlpUrl }}
+            - name: SECURITY_AUDIT_OTLP_URL
+              value: {{ .Values.security.auditOtlpUrl | quote }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.mcp.ssePort }}
+              protocol: TCP
+          {{- if and .Values.livenessProbe.enabled (eq .Values.mcp.transport "sse") }}
+          livenessProbe:
+            {{- omit .Values.livenessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if and .Values.readinessProbe.enabled (eq .Values.mcp.transport "sse") }}
+          readinessProbe:
+            {{- omit .Values.readinessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if $policyCm }}
+            - name: policy
+              mountPath: /etc/mainframe-mcp
+              readOnly: true
+            {{- end }}
+            {{- if .Values.persistence.enabled }}
+            - name: data
+              mountPath: {{ .Values.persistence.mountPath }}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if $policyCm }}
+        - name: policy
+          configMap:
+            name: {{ $policyCm }}
+        {{- end }}
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "mainframe-mcp-server.fullname" . }}-data
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

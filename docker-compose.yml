@@ -1,9 +1,11 @@
 services:
   mainframe-mcp-server:
+    # Official image (signed, SBOM-attached) — see docs/deployment.md for the
+    # cosign verification command. `build:` keeps local development working.
+    image: ghcr.io/notharshhaa/mainframe-mcp-server:latest
     build:
       context: .
       dockerfile: Dockerfile
-    image: mainframe-mcp-server:latest
     container_name: mainframe-mcp-server
     restart: unless-stopped
     environment:
@@ -17,9 +19,25 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       MCP_TRANSPORT: ${MCP_TRANSPORT:-sse}
       MCP_SSE_PORT: ${MCP_SSE_PORT:-3000}
+      # Point the file audit sink at the mounted volume (optional), e.g.
+      # SECURITY_AUDIT_FILE=/data/audit/audit.ndjson
+      SECURITY_AUDIT_FILE: ${SECURITY_AUDIT_FILE:-}
     ports:
       # Only relevant when MCP_TRANSPORT=sse
       - "${MCP_SSE_PORT:-3000}:${MCP_SSE_PORT:-3000}"
     # stdio transport requires an attached client; keep STDIN open
     stdin_open: true
     tty: true
+    # ---- Container hardening (mirrors the Helm chart's securityContext) ----
+    user: "1000:1000"            # non-root (the image already runs as `node`)
+    read_only: true              # immutable root filesystem
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - audit-data:/data        # writable when SECURITY_AUDIT_FILE points here
+volumes:
+  audit-data:

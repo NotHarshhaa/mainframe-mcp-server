@@ -264,6 +264,10 @@
           <h3>Capacity &amp; cost</h3>
           <p>Per-step CPU from JES message logs, MSU estimates from your LPAR rating, MLC cost attribution with explicit pricing assumptions, and dump digests (CEEDUMP/SYSMDUMP/SYSUDUMP).</p>
         </div>
+        <div class="card">
+          <h3>Supply-chain assurance</h3>
+          <p>Official non-root image on GHCR, signed with Sigstore keyless cosign, SLSA provenance on npm, SPDX + CycloneDX SBOMs, signed checksums, and a hardened Helm chart.</p>
+        </div>
       </div>
     </section>
 
@@ -496,6 +500,30 @@ npm test          # unit tests, no mainframe required</pre>
         <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/docs/deployment.md">deployment.md</a> ·
         <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/blob/main/config/mcp-client.example.json">mcp-client.example.json</a>
       </p>
+
+      <h3 style="margin-top:2rem;font-size:1.15rem;">Containers, Helm &amp; supply-chain assurance</h3>
+      <p class="section-intro">
+        Releases publish an <strong>official non-root image</strong> to GHCR (signed with Sigstore keyless cosign,
+        with SLSA provenance + SBOM attestations), the npm package ships with <strong>SLSA provenance</strong>, and
+        every GitHub release carries SPDX + CycloneDX SBOMs plus a signed checksum manifest. A hardened
+        <a href="https://github.com/NotHarshhaa/mainframe-mcp-server/tree/main/helm/mainframe-mcp-server">Helm chart</a>
+        deploys the server read-only with dropped capabilities.
+      </p>
+
+      <div class="code-label">Verify before you trust · run on Kubernetes</div>
+      <div class="code-block">
+<pre># Verify the image signature (keyless, bound to this repo's release workflow)
+cosign verify ghcr.io/notharshhaa/mainframe-mcp-server:2.8.0 \
+  --certificate-identity-regexp 'https://github.com/NotHarshhaa/mainframe-mcp-server/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+# Deploy on Kubernetes (non-root, read-only rootfs, policy + SIEM wired via values)
+helm install mainframe-mcp helm/mainframe-mcp-server \
+  --set zosmf.host=zosmf.example.com \
+  --set zosmf.token="$ZOSMF_TOKEN" \
+  --set policy.existingConfigMap=mcp-policy \
+  --set security.auditOtlpUrl=http://otel-collector:4318</pre>
+      </div>
     </section>
 
     <section id="enterprise" data-kicker="06 · Governance">
