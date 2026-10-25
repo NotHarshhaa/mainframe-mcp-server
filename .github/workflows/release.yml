@@ -64,11 +64,32 @@ jobs:
           chmod +x mcp-publisher
           ./mcp-publisher --version
 
-      - name: Publish to the MCP registry
+      - name: Publish to the MCP registry (skipped when version already listed — rerun safe)
         run: |
-          ./mcp-publisher validate server.json
-          ./mcp-publisher login github-oidc
-          ./mcp-publisher publish server.json
+          PKG=$(node -p "require('./server.json').name")
+          VER=$(node -p "require('./server.json').packages[0].version")
+          ENC=$(node -p "encodeURIComponent(process.argv[1])" "$PKG")
+          LISTED=$(curl -s "https://registry.modelcontextprotocol.io/v0/servers?search=$ENC" | node -e "
+            let d = '';
+            process.stdin.on('data', (c) => (d += c)).on('end', () => {
+              try {
+                const j = JSON.parse(d);
+                const hit = (j.servers || []).some(
+                  (s) => s.server && s.server.name === process.argv[1] && s.server.version === process.argv[2],
+                );
+                console.log(hit ? 'yes' : 'no');
+              } catch {
+                console.log('no');
+              }
+            });
+          " "$PKG" "$VER")
+          if [ "$LISTED" = "yes" ]; then
+            echo "$PKG@$VER already listed in the MCP registry — skipping publish"
+          else
+            ./mcp-publisher validate server.json
+            ./mcp-publisher login github-oidc
+            ./mcp-publisher publish server.json
+          fi
 
       - name: Create GitHub release (notes from CHANGELOG + auto-generated commits)
         env:
