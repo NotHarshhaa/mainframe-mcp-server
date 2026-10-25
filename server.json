@@ -73,6 +73,55 @@
           "isSecret": false
         },
         {
+          "name": "ZOSMF_CERT",
+          "description": "PEM client certificate file path for mTLS auth",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "ZOSMF_CERT_KEY",
+          "description": "PEM client key file path for mTLS auth (required with ZOSMF_CERT)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "ZOSMF_TOKEN_FILE",
+          "description": "Read ZOSMF_TOKEN from this file at startup (vault/agent injection)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "ZOSMF_USER_ID",
+          "description": "End-user id for PassTicket identity propagation (RACF sees this user, not the service account)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "ZOSMF_PASSTICKET_APP",
+          "description": "RACF PTKTDATA application name for PassTicket generation (default ZOSMF)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "ZOWE_TEAM_CONFIG",
+          "description": "Path to a zowe.config.json to import connection settings from (env vars win)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "ZOSMF_PROFILE",
+          "description": "Profile name inside the Zowe team config (defaults to defaults.zosmf)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "LOG_LEVEL",
           "description": "Log level: fatal, error, warn, info, debug, trace, silent",
           "isRequired": false,
@@ -252,6 +301,69 @@
           "description": "Maximum inline JCL size for submit_jcl",
           "isRequired": false,
           "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_WRITE_APPROVAL",
+          "description": "Human-in-the-loop: submit_jcl returns a one-time token and approve_write executes (default false)",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_JCL_SCAN",
+          "description": "Pre-flight scan JCL before submission: IDCAMS DELETE, IEFBR14 DISP DELETE, blocked utilities (default true)",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_JCL_SCAN_STRICT",
+          "description": "Strict scan mode: WARN findings also block submissions (default false)",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_BLOCKED_PROGRAMS",
+          "description": "Comma-separated EXEC programs that may never run (extends ADRDSSU,ICKDSF,IEHINITT)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_BLOCKED_JOB_CLASSES",
+          "description": "Comma-separated JES job classes that may never be used",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_CHANGE_TICKET_PATTERN",
+          "description": "Regex a changeTicket argument must match on writes, e.g. CHG[0-9]{6}",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_WRITE_WINDOW",
+          "description": "Allowed write window, 24h HH:MM-HH:MM (overnight ranges allowed), e.g. 08:00-18:00",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_WRITE_DAYS",
+          "description": "Weekdays writes are allowed: 0=Sun..6=Sat, e.g. 1-5",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "SECURITY_WRITE_WINDOW_TZ",
+          "description": "IANA timezone for the write window (default UTC)",
+          "isRequired": false,
+          "format": "string",
           "isSecret": false
         }
       ]

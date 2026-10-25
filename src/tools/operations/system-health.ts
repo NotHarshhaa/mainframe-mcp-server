@@ -12,6 +12,7 @@ import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { GetJobs } from '@zowe/zos-jobs-for-zowe-sdk';
 import { securedHandler } from '../../utils/tool-handler.js';
+import { effectiveSession } from '../../zowe/enduser.js';
 import { formatStructuredResponse, renderTable, textResult } from '../../utils/formatters.js';
 import { isFailedJob, normalizeJob } from '../jobs/shared.js';
 import { aggregateAbends, findFailedJobs } from './shared.js';
@@ -38,7 +39,7 @@ export const registerSystemHealthTool: ToolRegistrar = (server, ctx) => {
     inputShape,
     securedHandler(ctx, 'system_health_summary', async ({ lookbackHours }) => {
       // Always fetch the live job queue for counts
-      const raws = await GetJobs.getJobsByOwnerAndPrefix(ctx.session, '*', '*');
+      const raws = await GetJobs.getJobsByOwnerAndPrefix(await effectiveSession(ctx), '*', '*');
       const jobs = raws.map(normalizeJob);
 
       const active = jobs.filter((job) => job.status === 'ACTIVE');

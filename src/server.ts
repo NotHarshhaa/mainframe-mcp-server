@@ -13,6 +13,7 @@ import type { Logger } from 'pino';
 import type { AppConfig } from './config/schema.js';
 import type { ToolContext } from './types/tools.js';
 import { createSession } from './zowe/client.js';
+import { createEndUserSessionResolver } from './zowe/enduser.js';
 import { registerJobTools } from './tools/jobs/index.js';
 import { registerDatasetTools } from './tools/datasets/index.js';
 import { registerUssTools } from './tools/uss/index.js';
@@ -30,10 +31,15 @@ export function buildServer(config: AppConfig, logger: Logger): McpServer {
     { capabilities: { tools: {}, logging: {} } },
   );
 
+  const serviceSession = createSession(config);
   const ctx: ToolContext = {
-    session: createSession(config),
+    session: serviceSession,
     config,
     logger,
+    // Per-user identity: when ZOSMF_USER_ID is configured, z/OSMF calls run
+    // under a PassTicket-authenticated end-user session instead of the
+    // service account.
+    resolveSession: createEndUserSessionResolver(config, serviceSession),
   };
 
   registerJobTools(server, ctx);

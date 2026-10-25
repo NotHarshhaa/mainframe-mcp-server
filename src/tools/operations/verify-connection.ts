@@ -7,6 +7,7 @@ import { getJson } from '../../zowe/rest-client.js';
 import { formatStructuredResponse, textResult } from '../../utils/formatters.js';
 import { securedHandler } from '../../utils/tool-handler.js';
 import { describeConnection } from '../../zowe/profiles.js';
+import { effectiveSession } from '../../zowe/enduser.js';
 
 export const registerVerifyConnectionTool: ToolRegistrar = (server, ctx) => {
   server.tool(
@@ -15,12 +16,12 @@ export const registerVerifyConnectionTool: ToolRegistrar = (server, ctx) => {
     {},
     securedHandler(ctx, 'verify_zosmf_connection', async () => {
       const owner = ctx.config.zosmf.user ?? '*';
-      const jobs = await GetJobs.getJobsByOwnerAndPrefix(ctx.session, owner, '*');
+      const jobs = await GetJobs.getJobsByOwnerAndPrefix(await effectiveSession(ctx), owner, '*');
 
       let zosmfVersion = 'unknown';
       try {
         const info = await getJson<{ zosmf_version?: string; version?: string }>(
-          ctx.session,
+          await effectiveSession(ctx),
           '/info',
         );
         zosmfVersion = info.zosmf_version ?? info.version ?? 'unknown';

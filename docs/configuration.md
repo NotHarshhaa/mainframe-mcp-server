@@ -59,6 +59,42 @@ Provide **either** token auth **or** basic auth. Startup fails if neither is set
 > Source secrets (token or password) from a vault or your MCP client's secret
 > storage rather than hardcoding them in checked-in files.
 
+## Identity & enterprise auth
+
+| Variable | Default | Description |
+|---|---|---|
+| `ZOSMF_CERT` | — | PEM client certificate file (mTLS). Takes precedence over token/basic. |
+| `ZOSMF_CERT_KEY` | — | PEM client key file (required with `ZOSMF_CERT`). |
+| `ZOSMF_TOKEN_FILE` | — | Read the token from this file at startup — lets a vault/agent inject the secret. |
+| `ZOSMF_TOKEN_TYPE` | `LTPA2` | `LTPA2` (z/OSMF session token) or `JWT` / `APIML` / `BEARER` (sent as `Authorization: Bearer`). |
+| `ZOSMF_USER_ID` | — | **Per-user identity:** end user the server acts as via PassTicket propagation. |
+| `ZOSMF_PASSTICKET_APP` | `ZOSMF` | RACF PTKTDATA application name used for PassTicket generation. |
+| `ZOWE_TEAM_CONFIG` | — | Path to a `zowe.config.json`; fills any z/OSMF setting not set via env. |
+| `ZOSMF_PROFILE` | `defaults.zosmf` | Which profile to import from the team config. |
+
+**PassTicket identity propagation.** With `ZOSMF_USER_ID` set, the server
+authenticates to z/OSMF with the service credential, calls the z/OSMF
+Generate PassTicket API (`POST /zosmf/restconapi/passticket`) for the end
+user, and runs every z/OSMF tool call under a session authenticated as that
+user — so RACF sees who asked, not "the MCP service account". PassTickets are
+cached for 8 minutes and regenerated transparently. On z/OS this requires the
+service account to be permitted to generate PassTickets for the target user
+and the application ID to be defined in PTKTDATA (`RDEFINE PTKTDATA ZOSMF ...`).
+
+**API Mediation Layer / SSO.** Pass an APIML JWT (`ZOSMF_TOKEN_TYPE=APIML`,
+with `ZOSMF_BASE_PATH=/api/v1` or your gateway prefix) or any OIDC-issued JWT
+your z/OSMF accepts (`ZOSMF_TOKEN_TYPE=JWT`). For full OIDC/SSO flows, obtain
+the token from your IdP outside this process and inject it via
+`ZOSMF_TOKEN_FILE` (a credential-helper agent can refresh it).
+
+**Zowe team config.** Set `ZOWE_TEAM_CONFIG=/path/to/zowe.config.json` to
+import host/port/basePath/user/password/token values from an existing Zowe
+profile (`ZOSMF_PROFILE` picks one; default is `defaults.zosmf`). Values
+marked `@secure` are honored when stored in the config file itself; secrets
+managed by an OS-keychain credential manager are not readable by this process
+and are skipped. Explicit environment variables always win over profile
+values.
+
 ## TLS
 
 | Variable | Default | Description |
@@ -67,6 +103,26 @@ Provide **either** token auth **or** basic auth. Startup fails if neither is set
 
 > Setting `ZOSMF_REJECT_UNAUTHORIZED=false` logs a warning on startup. Never
 > disable verification in production.
+
+## Governed writes
+
+Controls that apply to `submit_jcl` and `approve_write`:
+
+| Variable | Default | Description |
+|---|---|---|
+| `SECURITY_WRITE_APPROVAL` | `false` | Human-in-the-loop: `submit_jcl` validates everything, returns a one-time approval token, and does **not** touch JES until `approve_write` is called with it. |
+| `SECURITY_JCL_SCAN` | `true` | Pre-flight scan before submission: blocks IDCAMS `DELETE`, IEFBR14 steps that delete datasets via `DISP=(...,DELETE)`, blocked utilities (`ADRDSSU`, `ICKDSF`, `IEHINITT` by default), and restricted job classes. |
+| `SECURITY_JCL_SCAN_STRICT` | `false` | WARN-level findings (e.g. IDCAMS `ALTER`) also block submissions. |
+| `SECURITY_BLOCKED_PROGRAMS` | — | Extra comma-separated EXEC program names that may never run. |
+| `SECURITY_BLOCKED_JOB_CLASSES` | — | Comma-separated JES job classes that may never be used. |
+| `SECURITY_CHANGE_TICKET_PATTERN` | — | When set (e.g. `CHG[0-9]{6}`), every write must carry a `changeTicket` argument matching the regex. |
+| `SECURITY_WRITE_WINDOW` | — | `HH:MM-HH:MM` in 24h time (overnight ranges such as `22:00-06:00` allowed). Writes outside the window are rejected. |
+| `SECURITY_WRITE_DAYS` | every day | Allowed weekdays: `0`=Sun … `6`=Sat, e.g. `1-5` or `1,3,5`. |
+| `SECURITY_WRITE_WINDOW_TZ` | `UTC` | IANA timezone the window is evaluated in. |
+
+`submit_jcl` also accepts `dryRun=true`, which runs the structure checks and
+the pre-flight scan and reports what a real submission would do — without
+enforcing ticket/window gates and without touching JES.
 
 ## MCP Server
 

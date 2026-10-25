@@ -45,6 +45,8 @@
 - [z/OS prerequisites](#zos-prerequisites)
 - [Tools](#tools)
 - [Enterprise security](#enterprise-security)
+- [Per-user identity & SSO](#per-user-identity--sso)
+- [Governed writes](#governed-writes)
 - [Trust model & prompt injection](#trust-model--prompt-injection)
 - [How the intelligence tools work](#how-the-intelligence-tools-work)
 - [Quick start](#quick-start)
@@ -133,7 +135,8 @@ Use a dedicated z/OS user with least-privilege RACF profiles (job list/read auth
 | `list_jobs` | READ | List jobs by owner, prefix, or status |
 | `get_job_status` | READ | Status and return code for a job |
 | `get_job_output` | READ | Spool inventory or DD content |
-| `submit_jcl` | **WRITE** | Submit inline JCL — the only write tool; blocked by read-only mode |
+| `submit_jcl` | **WRITE** | Submit inline JCL — governed by pre-flight scan, change ticket, change window, and optional human approval |
+| `approve_write` | **WRITE** | Execute a pending JCL submission after human review (requires `SECURITY_WRITE_APPROVAL=true`) |
 | `analyze_job_failure` | READ | Abend code, failing step, and suggested fix |
 | `get_job_jcl` | READ | Retrieve submitted JCL from job spool |
 
@@ -214,7 +217,7 @@ Security is enforced at the **MCP server layer**, in addition to RACF/z/OSMF per
 
 | Control | Env variable | Purpose |
 |---|---|---|
-| Read-only mode | `SECURITY_READ_ONLY` | **Default `true`**: `submit_jcl` and write operations are blocked unless you explicitly opt in |
+| Read-only mode | `SECURITY_READ_ONLY` | **Default `true`**: `submit_jcl`, `approve_write`, and write operations are blocked unless you explicitly opt in |
 | Tool allowlist | `SECURITY_ALLOWED_TOOLS` | Only permit specific tools (least privilege) |
 | Tool blocklist | `SECURITY_BLOCKED_TOOLS` | Explicitly deny dangerous tools |
 | Dataset boundaries | `SECURITY_ALLOWED_DATASET_PATTERNS` | Restrict dataset access by HLQ pattern |
@@ -222,6 +225,116 @@ Security is enforced at the **MCP server layer**, in addition to RACF/z/OSMF per
 | Audit logging | `SECURITY_AUDIT_LOGGING=true` | Log every tool call (credentials redacted) |
 | JCL size limit | `SECURITY_MAX_JCL_BYTES` | Cap inline JCL submit size |
 | TLS verification | `ZOSMF_REJECT_UNAUTHORIZED=true` | Enforce certificate validation (default `true`) |
+
+---
+
+## Per-user identity & SSO
+
+By default the server authenticates to z/OSMF with one configured credential.
+Enterprise deployments usually need RACF to see **who asked**, not "the MCP
+service account". Four mechanisms are built in:
+
+**PassTicket identity propagation** — the strongest fit for shared deployments:
+
+```bash
+ZOSMF_USER_ID=PAYUSR            # the end user RACF should see
+ZOSMF_PASSTICKET_APP=ZOSMF      # PTKTDATA application (RDEFINE PTKTDATA ZOSMF ...)
+```
+
+The server authenticates with the service credential, calls the z/OSMF
+Generate PassTicket API for `PAYUSR`, and issues every z/OSMF call under a
+PassTicket-authenticated session **as that user**. PassTickets are cached for
+8 minutes and regenerated transparently; CICS/Db2 REST calls keep the service
+identity. Requires the service account to be permitted to generate
+PassTickets for the target user.
+
+**mTLS client certificates:**
+
+```bash
+ZOSMF_CERT=/pki/client.pem
+ZOSMF_CERT_KEY=/pki/client.key
+```
+
+Certificate authentication takes precedence over token/basic. Combine with a
+RACF IDID mapping (certificate → user) for certificate-based identity.
+
+**JWT / APIML tokens (SSO):**
+
+```bash
+ZOSMF_TOKEN=$JWT
+ZOSMF_TOKEN_TYPE=APIML     # or JWT — both travel as Authorization: Bearer
+ZOSMF_BASE_PATH=/api/v1    # APIML gateway prefix
+```
+
+`ZOSMF_TOKEN_TYPE=LTPA2` (default) keeps classic z/OSMF session-token
+behavior. Full OIDC/SSO flows run in your IdP/gateway — inject the issued JWT
+via `ZOSMF_TOKEN_FILE` so a vault or credential-helper agent can refresh it
+without touching the config file.
+
+**Zowe team config import** — reuse existing Zowe connection settings:
+
+```bash
+ZOWE_TEAM_CONFIG=/root/.zowe/zowe.config.json
+ZOSMF_PROFILE=lpar1.zosmf    # default: defaults.zosmf
+```
+
+Any z/OSMF setting (host, port, base path, credentials, `rejectUnauthorized`)
+not set via environment variables is filled from the profile. Values marked
+`@secure` are honored when stored in the config file itself; secrets held by
+an OS-keychain credential manager are not readable by this process and are
+skipped. Environment variables always win.
+
+---
+
+## Governed writes
+
+`submit_jcl` is the only way an agent can mutate anything on z/OS — so it runs
+through a governance pipeline before JES ever sees the job. Every layer is
+independent; enable what your change process requires.
+
+| Gate | Env variable | Default |
+|---|---|---|
+| Pre-flight JCL scan | `SECURITY_JCL_SCAN` | on |
+| Strict scan mode (WARN blocks) | `SECURITY_JCL_SCAN_STRICT` | off |
+| Blocked utilities | `SECURITY_BLOCKED_PROGRAMS` | `ADRDSSU, ICKDSF, IEHINITT` |
+| Restricted job classes | `SECURITY_BLOCKED_JOB_CLASSES` | none |
+| Change-ticket requirement | `SECURITY_CHANGE_TICKET_PATTERN` | off |
+| Change window | `SECURITY_WRITE_WINDOW` / `SECURITY_WRITE_DAYS` / `SECURITY_WRITE_WINDOW_TZ` | off / every day / UTC |
+| Human-in-the-loop approval | `SECURITY_WRITE_APPROVAL` | off |
+
+**The pre-flight scan blocks**, with rule name and JCL line number:
+
+- `IDCAMS DELETE` in SYSIN instream data (`IDCAMS ALTER` is a WARN; blocks in strict mode)
+- `IEFBR14` steps that delete datasets via `DISP=(,DELETE)` / `DISP=(MOD,DELETE)`
+- Blocked utilities — destructive storage programs by default (`ADRDSSU`, `ICKDSF`, `IEHINITT`), extendable with `SECURITY_BLOCKED_PROGRAMS`
+- Restricted JES job classes via `CLASS=`
+
+**Change tickets:** with `SECURITY_CHANGE_TICKET_PATTERN=CHG[0-9]{6}`, every
+submission must carry `changeTicket: "CHG000123"` or it is rejected with
+`[FORBIDDEN]`.
+
+**Change windows:** with `SECURITY_WRITE_WINDOW=22:00-06:00`,
+`SECURITY_WRITE_DAYS=1-5`, `SECURITY_WRITE_WINDOW_TZ=Europe/Berlin`,
+submissions outside the window are rejected — `dryRun` still works so the
+agent can validate JCL for a future change.
+
+**Dry-run:** `submit_jcl({ ..., dryRun: true })` runs structure checks and the
+scan and reports exactly what a real submission would do — overrides, scan
+findings, ticket/window/approval status, and the effective identity — without
+submitting anything.
+
+**Human-in-the-loop approval:** with `SECURITY_WRITE_APPROVAL=true`:
+
+1. The agent calls `submit_jcl` → the JCL is validated and scanned, and a
+   **one-time token** is returned. Nothing is submitted.
+2. A human reviews the exact JCL in the client.
+3. The agent calls `approve_write({ token })` → the change window is
+   re-checked and the job is submitted.
+
+Tokens expire after 10 minutes, work exactly once, and are redacted from
+audit logs. If you use `SECURITY_ALLOWED_TOOLS` with approval mode, allowlist
+both `submit_jcl` and `approve_write`. Read-only mode (`SECURITY_READ_ONLY=true`)
+blocks both regardless of approval being enabled.
 
 Use `security_posture_summary` to inspect which controls are active and get hardening recommendations.
 
@@ -408,8 +521,8 @@ Those tools need optional setup: `CMCI_CONTEXT`, `DB2_LOCATION`, or `RACF_AUDIT_
 **`[NOT_FOUND]` — job/dataset not found**
 Job ids are JES-qualified (`JOB01234`, `STC00012`, `TSU00123`) and jobs vanish when purged from the OUTPUT queue. For datasets, check the HLQ and that the name is cataloged (migrated/HSM datasets may still resolve but show `MIGRATED`).
 
-**`[FORBIDDEN]` — tool blocked**
-Read-only mode (the default) blocks `submit_jcl`; an allowlist/blocklist rule matched. Set `SECURITY_READ_ONLY=false` and/or adjust `SECURITY_ALLOWED_TOOLS`/`SECURITY_BLOCKED_TOOLS` — deliberately an operator decision, not the agent's.
+**`[FORBIDDEN]` — tool blocked or write rejected**
+Read-only mode (the default) blocks `submit_jcl` and `approve_write`; an allowlist/blocklist rule matched; the pre-flight scan found a destructive construct; the change ticket was missing or malformed; or the submission is outside the change window. The error message names the specific gate — each one is an operator decision (env variables), not something the agent can turn off.
 
 **The client doesn't show any tools**
 Check stderr for the startup log (`mainframe-mcp-server connected over stdio`). Invalid config aborts with a variable-by-variable message. Set `LOG_LEVEL=debug` for per-call tracing. Requires Node 18+.

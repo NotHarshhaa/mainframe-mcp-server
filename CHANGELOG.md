@@ -6,14 +6,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Per-user identity (PassTicket propagation).** Set `ZOSMF_USER_ID` and the
+  server generates z/OSMF PassTickets for the end user and runs every z/OSMF
+  tool call under that identity, so RACF sees who asked instead of the shared
+  service account. Tickets are cached (8-minute TTL) and regenerated
+  transparently.
+- **mTLS client-certificate auth** via `ZOSMF_CERT` + `ZOSMF_CERT_KEY` (PEM
+  paths, `cert-pem` sessions).
+- **JWT / APIML token auth**: `ZOSMF_TOKEN_TYPE=JWT|APIML|BEARER` is sent as
+  `Authorization: Bearer` for API Mediation Layer and OIDC-issued tokens;
+  `ZOSMF_TOKEN_FILE` allows vault/agent-side token injection.
+- **Zowe team config profile import**: `ZOWE_TEAM_CONFIG` (+ `ZOSMF_PROFILE`)
+  fills any z/OSMF setting not provided via env, including `@secure` entries
+  stored in the config file.
+- **Governed writes for `submit_jcl`**:
+  - JCL pre-flight scan (`SECURITY_JCL_SCAN`, default on) blocking IDCAMS
+    `DELETE`, IEFBR14 `DISP=(...,DELETE)` dataset deletes, blocked utilities
+    (`ADRDSSU`, `ICKDSF`, `IEHINITT` by default, extendable via
+    `SECURITY_BLOCKED_PROGRAMS`), and restricted job classes; WARN findings
+    (e.g. IDCAMS `ALTER`) block in strict mode (`SECURITY_JCL_SCAN_STRICT`).
+  - Change-ticket requirement (`SECURITY_CHANGE_TICKET_PATTERN`).
+  - Change-window enforcement (`SECURITY_WRITE_WINDOW`, `SECURITY_WRITE_DAYS`,
+    `SECURITY_WRITE_WINDOW_TZ`) with overnight-window and IANA-timezone
+    support.
+  - `dryRun=true` on `submit_jcl` reports structure checks, scan findings, and
+    the governance outcome without submitting.
+  - Human-in-the-loop approval (`SECURITY_WRITE_APPROVAL=true`): validated
+    submissions become pending and a new **`approve_write`** tool executes
+    them with a one-time, 10-minute token after human review; the change
+    window is re-checked at approval time.
+
 ### Changed
 
-- **`SECURITY_READ_ONLY` now defaults to `true`.** Write tools (currently
-  `submit_jcl`) are blocked unless you explicitly set
+- **`SECURITY_READ_ONLY` now defaults to `true`.** Write tools (`submit_jcl`,
+  `approve_write`) are blocked unless you explicitly set
   `SECURITY_READ_ONLY=false`. This is the safe default for AI-agent access.
+- Boolean env fallbacks moved out of the env reader into the Zod schema so
+  defaults are applied uniformly (previously inline fallbacks shadowed the
+  schema).
 - Documentation overhaul: z/OS prerequisites, per-tool read/write labelling,
-  trust & prompt-injection model, intelligence-tool mechanics, limits,
-  troubleshooting/FAQ, and an honest comparison table.
+  per-user identity & SSO, governed writes, trust & prompt-injection model,
+  intelligence-tool mechanics, limits, troubleshooting/FAQ, and an honest
+  comparison table.
 
 ### Fixed
 

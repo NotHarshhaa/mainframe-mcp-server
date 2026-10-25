@@ -12,12 +12,19 @@ import type { AppConfig } from '../config/schema.js';
 
 /** Everything a tool needs at runtime. */
 export interface ToolContext {
-  /** Authenticated z/OSMF session. */
+  /** Authenticated z/OSMF session (service identity). */
   session: Session;
   /** Validated application configuration. */
   config: AppConfig;
   /** Scoped logger. */
   logger: Logger;
+  /**
+   * When per-user identity (PassTicket propagation) is configured, returns a
+   * session authenticated as the end user; absent otherwise. Tools should use
+   * {@link effectiveSession} instead of touching `session` directly so z/OSMF
+   * sees who asked, not just the service account.
+   */
+  resolveSession?: () => Promise<Session>;
 }
 
 /** Signature shared by every tool-group registration function. */

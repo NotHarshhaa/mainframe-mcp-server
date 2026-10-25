@@ -5,6 +5,7 @@ import type { SmfMetric } from '../../utils/smf-parser.js';
 import type { ToolContext } from '../../types/tools.js';
 import { parseRmfJson, parseSmfSummaryText } from '../../utils/smf-parser.js';
 import { getJson } from '../../zowe/rest-client.js';
+import { effectiveSession } from '../../zowe/enduser.js';
 import { readDataset } from '../datasets/shared.js';
 import { truncateLines } from '../../utils/formatters.js';
 
@@ -18,7 +19,7 @@ export async function fetchSmfMetrics(
 
   if (enterprise.rmfMetricsEnabled) {
     try {
-      const rmf = await getJson<Record<string, unknown>>(ctx.session, '/rmf/mvs/GPO/');
+      const rmf = await getJson<Record<string, unknown>>(await effectiveSession(ctx), '/rmf/mvs/GPO/');
       metrics.push(...parseRmfJson(rmf));
     } catch {
       // RMF may not be installed or authorized — continue to dataset fallback.

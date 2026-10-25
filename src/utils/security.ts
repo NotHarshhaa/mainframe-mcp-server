@@ -13,6 +13,7 @@ import { globToRegExp } from './glob.js';
 
 export const WRITE_TOOLS = new Set([
   'submit_jcl',
+  'approve_write',
   'delete_dataset',
   'delete_dataset_member',
   'write_dataset',
@@ -130,6 +131,36 @@ export function assertJclSizeAllowed(config: AppConfig, jcl: string): void {
     throw new ForbiddenError(
       `JCL payload (${bytes} bytes) exceeds the server limit of ${config.security.maxJclBytes} bytes (SECURITY_MAX_JCL_BYTES).`,
       { bytes, limit: config.security.maxJclBytes },
+    );
+  }
+}
+
+/**
+ * Enforce the change-ticket requirement on governed writes. When
+ * SECURITY_CHANGE_TICKET_PATTERN is configured, every write must carry a
+ * `changeTicket` argument matching the expression.
+ */
+export function assertChangeTicket(config: AppConfig, ticket?: string): void {
+  const pattern = config.security.changeTicketPattern;
+  if (!pattern) return;
+  let regex: RegExp;
+  try {
+    regex = new RegExp(pattern);
+  } catch {
+    throw new ForbiddenError(
+      `SECURITY_CHANGE_TICKET_PATTERN is not a valid regex: ${pattern}`,
+    );
+  }
+  if (!ticket) {
+    throw new ForbiddenError(
+      `A change ticket is required for write operations: pass changeTicket matching /${pattern}/ (SECURITY_CHANGE_TICKET_PATTERN).`,
+      { pattern },
+    );
+  }
+  if (!regex.test(ticket)) {
+    throw new ForbiddenError(
+      `Change ticket "${ticket}" does not match the required format /${pattern}/ (SECURITY_CHANGE_TICKET_PATTERN).`,
+      { pattern, ticket },
     );
   }
 }

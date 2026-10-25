@@ -6,6 +6,7 @@ import type { UssEntry } from '../../types/zos.js';
 import type { ToolContext } from '../../types/tools.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import { assertUssPathAllowed } from '../../utils/security.js';
+import { effectiveSession } from '../../zowe/enduser.js';
 
 interface RawUssItem {
   name?: string;
@@ -116,7 +117,7 @@ export async function listUssDirectory(ctx: ToolContext, path: string): Promise<
   validateAbsolutePath(path);
   assertUssPathAllowed(ctx.config, path);
 
-  const response = await List.fileList(ctx.session, path, {});
+  const response = await List.fileList(await effectiveSession(ctx), path, {});
   const items = (response.apiResponse?.items ?? []) as RawUssItem[];
   return items
     .map(normalizeUssEntry)
@@ -128,7 +129,7 @@ export async function readUssFile(ctx: ToolContext, path: string): Promise<strin
   validateAbsolutePath(path);
   assertUssPathAllowed(ctx.config, path);
 
-  const buffer = await Get.USSFile(ctx.session, path, {});
+  const buffer = await Get.USSFile(await effectiveSession(ctx), path, {});
   if (buffer == null) {
     throw new NotFoundError(`USS file ${path} could not be read or is empty.`, { path });
   }

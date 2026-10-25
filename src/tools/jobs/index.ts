@@ -9,6 +9,7 @@ import { registerListJobsTool } from './list-jobs.js';
 import { registerGetJobStatusTool } from './get-job-status.js';
 import { registerGetJobOutputTool } from './get-job-output.js';
 import { registerSubmitJclTool } from './submit-jcl.js';
+import { registerApproveWriteTool } from './approve-write.js';
 import { registerAnalyzeFailureTool } from './analyze-failure.js';
 import { registerGetJobJclTool } from './get-job-jcl.js';
 
@@ -17,6 +18,7 @@ export const registerJobTools: ToolRegistrar = (server, ctx) => {
   registerGetJobStatusTool(server, ctx);
   registerGetJobOutputTool(server, ctx);
   registerSubmitJclTool(server, ctx);
+  registerApproveWriteTool(server, ctx);
   registerAnalyzeFailureTool(server, ctx);
   registerGetJobJclTool(server, ctx);
   ctx.logger.debug('Registered job tools');

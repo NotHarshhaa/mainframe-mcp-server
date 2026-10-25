@@ -6,6 +6,7 @@ import { Get, List } from '@zowe/zos-files-for-zowe-sdk';
 import type { Dataset, Member } from '../../types/zos.js';
 import type { ToolContext } from '../../types/tools.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
+import { effectiveSession } from '../../zowe/enduser.js';
 
 interface RawDataset {
   dsname?: string;
@@ -84,14 +85,14 @@ export function assertValidMemberName(name: string): void {
 
 /** List datasets matching a pattern (e.g. "SYS1.*"). */
 export async function listDatasets(ctx: ToolContext, pattern: string): Promise<Dataset[]> {
-  const response = await List.dataSet(ctx.session, pattern, { attributes: true });
+  const response = await List.dataSet(await effectiveSession(ctx), pattern, { attributes: true });
   const items = (response.apiResponse?.items ?? []) as RawDataset[];
   return items.map(normalizeDataset).filter((ds) => ds.name.length > 0);
 }
 
 /** List members of a PDS (basic — name and dates only). */
 export async function listMembers(ctx: ToolContext, dsn: string): Promise<Member[]> {
-  const response = await List.allMembers(ctx.session, dsn, {});
+  const response = await List.allMembers(await effectiveSession(ctx), dsn, {});
   const items = (response.apiResponse?.items ?? []) as RawMember[];
   return items.map(normalizeMember).filter((m) => m.name.length > 0);
 }
@@ -101,7 +102,7 @@ export async function listMembers(ctx: ToolContext, dsn: string): Promise<Member
  * Requires the member have statistics turned on in the PDS directory.
  */
 export async function listMembersWithStats(ctx: ToolContext, dsn: string): Promise<Member[]> {
-  const response = await List.allMembers(ctx.session, dsn, { attributes: true });
+  const response = await List.allMembers(await effectiveSession(ctx), dsn, { attributes: true });
   const items = (response.apiResponse?.items ?? []) as RawMember[];
   return items.map(normalizeMember).filter((m) => m.name.length > 0);
 }
@@ -117,7 +118,7 @@ export async function readDataset(
   const options = encoding === 'ibm1047'
     ? { responseTimeout: 60000 }
     : {};
-  const buffer = await Get.dataSet(ctx.session, target, options);
+  const buffer = await Get.dataSet(await effectiveSession(ctx), target, options);
   if (buffer == null) {
     throw new NotFoundError(`Dataset ${target} could not be read or is empty.`, { target });
   }

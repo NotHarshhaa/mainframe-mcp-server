@@ -9,6 +9,7 @@ import type { Job } from '../../types/zos.js';
 import type { ToolContext } from '../../types/tools.js';
 import { extractAbendCode } from '../../utils/abend-codes.js';
 import { isFailedJob, normalizeJob } from '../jobs/shared.js';
+import { effectiveSession } from '../../zowe/enduser.js';
 
 /** A failed job enriched with the abend code parsed from its return code. */
 export interface FailedJobSummary {
@@ -36,7 +37,7 @@ export async function findFailedJobs(
   hours: number,
   owner = '*',
 ): Promise<FailedJobSummary[]> {
-  const raws = await GetJobs.getJobsByOwnerAndPrefix(ctx.session, owner, '*');
+  const raws = await GetJobs.getJobsByOwnerAndPrefix(await effectiveSession(ctx), owner, '*');
   const cutoff = Date.now() - hours * 60 * 60 * 1000;
   const maxResults = ctx.config.limits.maxFailedJobResults;
 

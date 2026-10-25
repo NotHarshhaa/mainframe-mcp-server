@@ -11,6 +11,7 @@ import type { ToolContext } from '../../types/tools.js';
 import { NotFoundError, ValidationError, normalizeError } from '../../utils/errors.js';
 import { extractAbendCode, lookupAbend } from '../../utils/abend-codes.js';
 import { truncateLines } from '../../utils/formatters.js';
+import { effectiveSession } from '../../zowe/enduser.js';
 
 /** DD names most likely to contain the failure narrative, in priority order. */
 const DIAGNOSTIC_DDS = ['JESYSMSG', 'JESMSGLG', 'SYSOUT', 'SYSPRINT'];
@@ -93,7 +94,7 @@ export function isFailedJob(job: Job): boolean {
 /** Fetch a single raw job by JES id, mapping a miss to a {@link NotFoundError}. */
 export async function fetchRawJob(ctx: ToolContext, jobId: string): Promise<IJob> {
   try {
-    const job = await GetJobs.getJob(ctx.session, jobId);
+    const job = await GetJobs.getJob(await effectiveSession(ctx), jobId);
     if (!job) throw new NotFoundError(`No job found with id ${jobId}.`, { jobId });
     return job;
   } catch (err) {
@@ -118,7 +119,7 @@ export async function listJobs(
   owner: string,
   prefix: string,
 ): Promise<Job[]> {
-  const jobs = await GetJobs.getJobsByOwnerAndPrefix(ctx.session, owner, prefix);
+  const jobs = await GetJobs.getJobsByOwnerAndPrefix(await effectiveSession(ctx), owner, prefix);
   return jobs.map(normalizeJob);
 }
 
@@ -141,7 +142,7 @@ export async function fetchSpoolFiles(
   jobName: string,
   jobId: string,
 ): Promise<SpoolFile[]> {
-  const files = await GetJobs.getSpoolFiles(ctx.session, jobName, jobId);
+  const files = await GetJobs.getSpoolFiles(await effectiveSession(ctx), jobName, jobId);
   return latestSpoolFilesByDd(files.map(normalizeSpoolFile));
 }
 
@@ -152,7 +153,7 @@ export async function fetchSpoolContent(
   jobId: string,
   spoolId: number,
 ): Promise<string> {
-  return GetJobs.getSpoolContentById(ctx.session, jobName, jobId, spoolId);
+  return GetJobs.getSpoolContentById(await effectiveSession(ctx), jobName, jobId, spoolId);
 }
 
 /** Try to pull the most diagnostic spool text for a job (capped by config). */
