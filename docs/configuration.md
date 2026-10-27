@@ -193,6 +193,37 @@ All enterprise variables are optional. Tools return `CONFIG_ERROR` with setup gu
 | `MLC_MSU_MONTHLY_PRICE` / `MLC_CURRENCY` | — | Monthly $/MSU price and currency for MLC cost attribution. |
 | `STORAGE_FREE_THRESHOLD` | `10` | Percent-free threshold below which `get_volume_space` flags a volume. |
 
+### Incident management & runbooks
+
+Configure one provider to enable `create_incident_ticket`; without these the
+tool is not registered. Creating a ticket is a governed write.
+
+| Variable | Default | Description |
+|---|---|---|
+| `INCIDENT_PROVIDER` | — | `servicenow`, `jira`, or `pagerduty`. Omit to disable the integration. |
+| `INCIDENT_BASE_URL` | — | ServiceNow instance root (`https://acme.service-now.com`) or Jira site root (`https://acme.atlassian.net`). PagerDuty ignores it (Events API v2 endpoint is fixed). |
+| `INCIDENT_USER` / `INCIDENT_TOKEN` | — | ServiceNow username/password or Jira account email/API token (basic auth). Not used by PagerDuty. |
+| `INCIDENT_SERVICENOW_TABLE` | `incident` | ServiceNow target table (e.g. `incident`, `change_request`). |
+| `INCIDENT_SERVICENOW_CALLER_ID` | — | ServiceNow `caller_id` sys_id attributed on the ticket. |
+| `INCIDENT_JIRA_PROJECT` | — | Jira project key (required for Jira). |
+| `INCIDENT_JIRA_ISSUE_TYPE` | `Bug` | Jira issue type name. |
+| `INCIDENT_PAGERDUTY_ROUTING_KEY` | — | PagerDuty Events API v2 routing key (required for PagerDuty). Incidents deduplicate per job. |
+| `INCIDENT_SEVERITY` | `error` | Default ticket severity: `info`, `warning`, `error`, `critical` (overridable per call). |
+| `INCIDENT_LABELS` | — | Comma-separated labels applied to Jira issues and mentioned in ServiceNow tickets. |
+| `INCIDENT_RUNBOOKS` | — | JSON map of abend code (exact or glob pattern) → runbook URL, e.g. `{"S0C7": "https://wiki/runbooks/s0c7", "S2*": "https://wiki/runbooks/s2xx"}`. Attached to abend lookups, incident bundles, and tickets. |
+
+### Internal documentation (RAG)
+
+Local TF-IDF retrieval over your own playbooks — no external embedding
+service, contents never leave the host.
+
+| Variable | Default | Description |
+|---|---|---|
+| `DOCS_SOURCES` | — | Comma-separated `.md`/`.txt` files or directories (walked recursively). Omit to disable. |
+| `DOCS_MAX_RESULTS` | `3` | Excerpts returned per `search_internal_docs` call / attached per incident bundle. |
+| `DOCS_MAX_EXCERPT_CHARS` | `1200` | Maximum characters per attached excerpt. |
+| `DOCS_REFRESH_SECONDS` | `300` | Seconds before the index is rebuilt from disk (`0` = index once). |
+
 ## Enterprise security controls
 
 | Variable | Default | Description |

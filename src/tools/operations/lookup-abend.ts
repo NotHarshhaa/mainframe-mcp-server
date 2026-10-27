@@ -12,6 +12,8 @@
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
 import { lookupAbend, searchAbendCodes } from '../../utils/abend-codes.js';
+import { findRunbookUrl, parseRunbooks } from '../../utils/runbooks.js';
+import { formatDocExcerpts } from '../../utils/doc-rag.js';
 import { defineTool } from '../../utils/define-tool.js';
 import {
   formatAbendCatalog,
@@ -69,9 +71,28 @@ export const registerLookupAbendTool: ToolRegistrar = (server, ctx) => {
         }
 
         ctx.logger.debug({ code: info.code }, 'lookup_abend_code');
+
+        // Runbook link (INCIDENT_RUNBOOKS) and internal-doc excerpts (RAG).
+        const runbookUrl = findRunbookUrl(info.code, parseRunbooks(ctx.config.incident.runbooks));
+        let docBody: string | undefined;
+        if (ctx.docIndex) {
+          try {
+            const matches = ctx.docIndex.search(info.code, ctx.config.docs.maxResults);
+            if (matches.length > 0) {
+              docBody = formatDocExcerpts(matches, ctx.config.docs.maxExcerptChars);
+            }
+          } catch (err) {
+            ctx.logger.warn({ err }, 'doc-rag: retrieval failed; continuing without excerpts');
+          }
+        }
+
         return textResult(
           formatStructuredResponse(`Abend Reference — ${info.code}`, [
             { heading: 'Details', body: formatAbendInfo(info) },
+            ...(runbookUrl
+              ? [{ heading: 'Runbook', body: `${runbookUrl}\nFollow the organization runbook for environment-specific steps.` }]
+              : []),
+            ...(docBody ? [{ heading: 'Internal documentation (RAG)', body: docBody }] : []),
           ]),
         );
       }

@@ -44,12 +44,14 @@
 - [How it's different](#how-its-different)
 - [z/OS prerequisites](#zos-prerequisites)
 - [Tools](#tools)
+- [Prompts & resources (MCP-native surface)](#prompts--resources-mcp-native-surface)
 - [Enterprise security](#enterprise-security)
   - [Enterprise features](#enterprise-features)
 - [Per-user identity & SSO](#per-user-identity--sso)
 - [Governed writes](#governed-writes)
 - [Trust model & prompt injection](#trust-model--prompt-injection)
 - [How the intelligence tools work](#how-the-intelligence-tools-work)
+- [Incident management & runbooks](#incident-management--runbooks)
 - [Quick start](#quick-start)
 - [Transports](#transports)
 - [Limits & timeouts](#limits--timeouts)
@@ -265,7 +267,57 @@ Built in — see [How the intelligence tools work](#how-the-intelligence-tools-w
 | `list_environments` | OFFLINE | Named z/OS environments (DEV/TEST/UAT/PROD, LPARs) with per-environment read-only and role policy |
 | `whoami` | OFFLINE | Acting identity, resolved role, permission summary, active environment, data-protection status |
 
+### Incident management
+
+Optional — file tickets from investigation bundles. Configure one provider with the `INCIDENT_*` variables (see [Incident management & runbooks](#incident-management--runbooks)); the tool registers only when a provider is set.
+
+| Tool | Type | Description |
+|---|---|---|
+| `create_incident_ticket` | WRITE | Rebuild the `investigate_incident` bundle for a job and file it as a ServiceNow incident, Jira issue, or PagerDuty incident |
+
+### Internal documentation (RAG)
+
+Optional — retrieval over your own runbooks and playbooks. Point `DOCS_SOURCES` at local `.md`/`.txt` files; the tool registers only when sources are set.
+
+| Tool | Type | Description |
+|---|---|---|
+| `search_internal_docs` | OFFLINE | Retrieve the most relevant excerpts from internal documentation, with file and heading attribution |
+
 See [docs/tools-reference.md](./docs/tools-reference.md) for full input/output details.
+
+---
+
+## Prompts & resources (MCP-native surface)
+
+Beyond tools, the server exposes the full MCP surface so clients can offer
+reusable playbooks and address mainframe data directly:
+
+**Prompts** — guided, multi-step playbooks your client surfaces like slash commands:
+
+| Prompt | Purpose |
+|---|---|
+| `triage_failed_job` | Triage one failed job (or every failure in a window) end-to-end: investigate, check runbooks and internal docs, optionally file a ticket |
+| `morning_batch_health_check` | Overnight health check for the morning standup: system health, failures, abend trends, prediction, capacity and storage |
+| `investigate_abend` | Deep-dive one abend code: reference entry, internal docs, recent occurrences, remediation plan |
+
+**Resources** — addressable read-only URIs (gated, masked, and audited exactly
+like the equivalent tools):
+
+| URI | Returns |
+|---|---|
+| `mainframe://jobs/{jobId}/spool` | Spool file (DD) inventory for a job |
+| `mainframe://jobs/{jobId}/spool/{ddName}` | Content of one spool DD |
+| `mainframe://datasets/{dsn}` | Member listing of a PDS/PDSE |
+| `mainframe://datasets/{dsn}/members/{member}` | Content of one member |
+| `mainframe://reference/abend-codes` | The built-in abend reference catalog |
+
+**Tool annotations** — every tool advertises `readOnlyHint`, `destructiveHint`,
+`idempotentHint`, and a human-readable `title`, derived from the same
+write-tool registry the server enforces. Clients that confirm based on hints
+(reactive confirmations, plan approval, etc.) agree with the server's own
+gates: reads are `readOnlyHint: true`; `submit_jcl`, `cancel_job`,
+`issue_console_command`, and the other destructive operations are flagged
+`destructiveHint: true`.
 
 ---
 
@@ -495,6 +547,69 @@ Everything this server returns — spool output, dataset contents, USS files, au
 - **Trend** compares failure counts in the newest vs oldest third of the window (INCREASING / STABLE / DECREASING).
 
 **Known limitation (important for reviewers):** JES only exposes jobs still in the system. "History" means *failures currently listed in the OUTPUT queue* (capped at `MAX_FAILED_JOB_RESULTS`), not a query of SMF archives. For long-horizon analytics, feed SMF data into a real analytics platform — this tool answers "what is failing *right now*, repeatedly?"
+
+---
+
+## Incident management & runbooks
+
+Bridge investigations into your ITSM flow. Configure **one** provider and
+`create_incident_ticket` registers automatically; without configuration the
+server behaves exactly as before.
+
+```jsonc
+// ServiceNow — Table API with basic auth
+"INCIDENT_PROVIDER": "servicenow",
+"INCIDENT_BASE_URL": "https://acme.service-now.com",
+"INCIDENT_USER": "svc-mcp",
+"INCIDENT_TOKEN": "<password or OAuth token>",
+"INCIDENT_SERVICENOW_TABLE": "incident",          // default
+"INCIDENT_SERVICENOW_CALLER_ID": "<sys_id>",       // optional
+
+// Jira — REST API v3, basic auth with account email + API token
+"INCIDENT_PROVIDER": "jira",
+"INCIDENT_BASE_URL": "https://acme.atlassian.net",
+"INCIDENT_USER": "mcp-bot@acme.com",
+"INCIDENT_TOKEN": "<API token>",
+"INCIDENT_JIRA_PROJECT": "OPS",
+"INCIDENT_JIRA_ISSUE_TYPE": "Bug",                 // default
+
+// PagerDuty — Events API v2 (routing-key auth, dedup per job)
+"INCIDENT_PROVIDER": "pagerduty",
+"INCIDENT_PAGERDUTY_ROUTING_KEY": "<routing key>"
+```
+
+Shared settings: `INCIDENT_SEVERITY` (default `error`), `INCIDENT_LABELS`
+(comma-separated; applied to ServiceNow comments and Jira labels), and
+`INCIDENT_RUNBOOKS` — a JSON map linking abend codes to your own runbooks:
+
+```json
+"INCIDENT_RUNBOOKS": "{\"S0C7\": \"https://wiki.acme.com/runbooks/s0c7\", \"S2*\": \"https://wiki.acme.com/runbooks/jes-timeouts\", \"U*\": \"https://wiki.acme.com/runbooks/user-abends\"}"
+```
+
+Exact codes win over patterns; matches attach to `lookup_abend_code` output,
+`investigate_incident` bundles, and every created ticket. Creating a ticket is
+a **governed write**: blocked by `SECURITY_READ_ONLY`, subject to policy RBAC,
+and audited like every other tool call. The ticket embeds the full incident
+bundle — failure analysis, abend reference, runbook link, internal-doc
+excerpts, spool inventory, and diagnostic excerpts.
+
+### RAG over internal documentation
+
+Point `DOCS_SOURCES` at comma-separated local `.md`/`.txt` files or
+directories (walked recursively; `node_modules` and dot-directories are
+skipped):
+
+```
+"DOCS_SOURCES": "/opt/mcp-docs/runbooks,/opt/mcp-docs/playbooks",
+"DOCS_MAX_RESULTS": "3",        // excerpts per search / bundle
+"DOCS_MAX_EXCERPT_CHARS": "1200",
+"DOCS_REFRESH_SECONDS": "300"   // re-index TTL (0 = index once at startup)
+```
+
+Retrieval is local TF-IDF — **zero dependencies, no external embedding API,
+and document contents never leave the host**. Excerpts (with file and heading
+attribution) attach automatically to incident bundles and abend lookups next
+to the built-in reference, and `search_internal_docs` queries them directly.
 
 ---
 

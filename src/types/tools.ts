@@ -12,6 +12,7 @@ import type { AppConfig } from '../config/schema.js';
 import type { ResolvedPolicy, ResolvedRole, ResolvedUser } from '../config/policy.js';
 import type { AuditLogger } from '../utils/audit.js';
 import type { EnvironmentRegistry } from '../environments/registry.js';
+import type { DocIndex } from '../utils/doc-rag.js';
 
 /** Everything a tool needs at runtime. */
 export interface ToolContext {
@@ -38,6 +39,11 @@ export interface ToolContext {
   environments?: EnvironmentRegistry;
   /** SIEM audit pipeline (feature: audit). Absent when no sinks are configured. */
   audit?: AuditLogger;
+  /**
+   * Local RAG index over internal documentation (feature: doc-rag). Present
+   * only when DOCS_SOURCES is configured; absent means no RAG sections.
+   */
+  docIndex?: DocIndex;
 }
 
 /** The active role and user mapping for the current call. */

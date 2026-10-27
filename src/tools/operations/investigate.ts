@@ -5,24 +5,17 @@
  * the diagnostic spool excerpts into a single response an AI agent can reason
  * over in one shot.
  *
- * Improvements over the original:
- *   - `maxExcerptLines` parameter lets callers control verbosity
- *   - Retrieves excerpts from ALL diagnostic DDs (not just the first), up to
- *     the configured spool-file limit, so agents get a richer picture
- *   - Surfaces the abend code reference title inline when available
+ * Bundle assembly lives in `./shared.ts` (buildIncidentBundle) so the
+ * incident-management integration creates tickets from the exact same
+ * evidence. This tool additionally surfaces, when configured:
+ *   - the organization runbook link matching the abend code (INCIDENT_RUNBOOKS)
+ *   - internal-documentation excerpts retrieved over DOCS_SOURCES (RAG)
  */
 import { z } from 'zod';
 import type { ToolRegistrar } from '../../types/tools.js';
+import { textResult } from '../../utils/formatters.js';
 import { defineTool } from '../../utils/define-tool.js';
-import {
-  formatAnalysisFull,
-  formatSpoolFiles,
-  formatStructuredResponse,
-  textResult,
-  truncateLines,
-} from '../../utils/formatters.js';
-import { lookupAbend } from '../../utils/abend-codes.js';
-import { analyzeJobFailure, fetchDiagnosticSpool, fetchSpoolFiles } from '../jobs/shared.js';
+import { buildIncidentBundle } from './shared.js';
 
 const inputShape = {
   jobId: z.string().min(1).describe('JES job id to investigate, e.g. "JOB01234".'),
@@ -38,57 +31,8 @@ const inputShape = {
 };
 
 export const registerInvestigateTool: ToolRegistrar = (server, ctx) => {
-  defineTool(server, ctx, 'investigate_incident', 'Assemble a full incident bundle for a job: status, root-cause analysis (with abend reference), complete spool inventory, and diagnostic excerpts from all relevant DDs.', inputShape, async ({ jobId, maxExcerptLines }) => {
-      const excerptLines = maxExcerptLines ?? 80;
-
-      const analysis = await analyzeJobFailure(ctx, jobId);
-      const job = analysis.job;
-      const spoolFiles = await fetchSpoolFiles(ctx, job.jobName, job.jobId);
-
-      // Rich failure analysis (summary + evidence + remediation)
-      const analysisFull = formatAnalysisFull(analysis, { includeEvidence: true });
-
-      // Inline abend code reference when we have a known code
-      const abendInfo = analysis.abendCode ? lookupAbend(analysis.abendCode) : undefined;
-      const abendReference = abendInfo
-        ? `${abendInfo.code} — ${abendInfo.title}\n${abendInfo.suggestedFix}`
-        : analysis.abendCode
-          ? `Abend code ${analysis.abendCode} has no reference entry in the local catalog.`
-          : 'No abend code detected.';
-
-      const sections = [
-        { heading: 'Failure analysis', body: analysisFull },
-        {
-          heading: `Abend reference (${analysis.abendCode ?? 'N/A'})`,
-          body: abendReference,
-        },
-        {
-          heading: 'Spool inventory',
-          body: formatSpoolFiles(job.jobName, job.jobId, spoolFiles),
-        },
-      ];
-
-      // Collect diagnostic excerpts from ALL relevant DDs (not just the first)
-      if (analysis.abendCode || analysis.failedStep || analysis.cancelledStep) {
-        const diags = await fetchDiagnosticSpool(ctx, job.jobName, job.jobId);
-        for (const diag of diags) {
-          const { text, truncated, totalLines } = truncateLines(diag.text, excerptLines);
-          const suffix = truncated
-            ? `\n... [showing first ${excerptLines} of ${totalLines} lines — increase maxExcerptLines for more]`
-            : '';
-          sections.push({
-            heading: `Diagnostic excerpt — ${diag.ddName}`,
-            body: text + suffix,
-          });
-        }
-      }
-
-      ctx.logger.debug(
-        { jobId, abendCode: analysis.abendCode, excerptSections: sections.length },
-        'investigate_incident',
-      );
-      return textResult(
-        formatStructuredResponse(`Incident Investigation — ${job.jobName} (${job.jobId})`, sections),
-      );
+  defineTool(server, ctx, 'investigate_incident', 'Assemble a full incident bundle for a job: status, root-cause analysis (with abend reference and runbook link), internal-doc excerpts (RAG), complete spool inventory, and diagnostic excerpts from all relevant DDs.', inputShape, async ({ jobId, maxExcerptLines }) => {
+      const bundle = await buildIncidentBundle(ctx, jobId, { maxExcerptLines });
+      return textResult(bundle.formatted);
     });
 };

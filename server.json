@@ -365,6 +365,62 @@
           "isRequired": false,
           "format": "string",
           "isSecret": false
+        },
+        {
+          "name": "INCIDENT_PROVIDER",
+          "description": "Incident-management provider: servicenow, jira, or pagerduty (enables create_incident_ticket)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "INCIDENT_BASE_URL",
+          "description": "ServiceNow instance or Jira site root (e.g. https://acme.service-now.com)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "INCIDENT_USER",
+          "description": "ServiceNow username or Jira account email",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "INCIDENT_TOKEN",
+          "description": "ServiceNow password or Jira API token",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "INCIDENT_JIRA_PROJECT",
+          "description": "Jira project key for created issues",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "INCIDENT_PAGERDUTY_ROUTING_KEY",
+          "description": "PagerDuty Events API v2 routing key",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "INCIDENT_RUNBOOKS",
+          "description": "JSON map of abend code (exact or glob) to runbook URL, e.g. {\"S0C7\": \"https://wiki/runbooks/s0c7\"}",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "DOCS_SOURCES",
+          "description": "Comma-separated .md/.txt files or directories to index for internal-doc retrieval (RAG)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
         }
       ]
     }

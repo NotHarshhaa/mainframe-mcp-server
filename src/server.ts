@@ -25,6 +25,7 @@ import { createEnvironmentRegistry, type EnvironmentRegistry } from './environme
 import type { ToolContext } from './types/tools.js';
 import { createSession } from './zowe/client.js';
 import { createEndUserSessionResolver } from './zowe/enduser.js';
+import { createDocIndexFromConfig } from './utils/doc-rag.js';
 import { registerJobTools } from './tools/jobs/index.js';
 import { registerDatasetTools } from './tools/datasets/index.js';
 import { registerUssTools } from './tools/uss/index.js';
@@ -41,6 +42,10 @@ import { registerMqTools } from './tools/mq/index.js';
 import { registerStorageTools } from './tools/storage/index.js';
 import { registerCapacityTools } from './tools/capacity/index.js';
 import { registerDumpTools } from './tools/dumps/index.js';
+import { registerIncidentTools } from './tools/incident/index.js';
+import { registerDocTools } from './tools/docs/index.js';
+import { registerPrompts } from './prompts/index.js';
+import { registerMainframeResources } from './resources/index.js';
 
 export interface BuildServerOptions {
   /** Audit pipeline created by {@link createAuditFromConfig}; absent = no sinks. */
@@ -92,7 +97,8 @@ export function buildServer(config: AppConfig, logger: Logger, opts?: BuildServe
 
   const server = new McpServer(
     { name: config.mcp.name, version: config.mcp.version },
-    { capabilities: { tools: {}, logging: {} } },
+    // prompts + resources are part of the server surface (feature: mcp-native).
+    { capabilities: { tools: {}, prompts: {}, resources: {}, logging: {} } },
   );
 
   // Capture the MCP client identity from the initialize handshake for audit.
@@ -102,6 +108,12 @@ export function buildServer(config: AppConfig, logger: Logger, opts?: BuildServe
   };
 
   const serviceSession = createSession(config);
+  // RAG over internal documentation (feature: doc-rag) — absent unless
+  // DOCS_SOURCES is configured.
+  const docIndex = createDocIndexFromConfig(config, logger);
+  if (docIndex) {
+    logger.info({ refreshSeconds: config.docs.refreshSeconds }, 'Doc RAG index configured');
+  }
   const ctx: ToolContext = {
     session: serviceSession,
     config,
@@ -113,6 +125,7 @@ export function buildServer(config: AppConfig, logger: Logger, opts?: BuildServe
     policy,
     environments,
     audit: opts?.audit,
+    ...(docIndex ? { docIndex } : {}),
   };
 
   registerJobTools(server, ctx);
@@ -131,6 +144,13 @@ export function buildServer(config: AppConfig, logger: Logger, opts?: BuildServe
   registerStorageTools(server, ctx);
   registerCapacityTools(server, ctx);
   registerDumpTools(server, ctx);
+  registerIncidentTools(server, ctx);
+  registerDocTools(server, ctx);
+
+  // MCP-native surface: reusable prompts and addressable resources, next to
+  // the tools.
+  registerPrompts(server, ctx);
+  registerMainframeResources(server, ctx);
 
   logger.info('All tool groups registered');
   return server;

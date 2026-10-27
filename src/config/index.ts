@@ -102,6 +102,26 @@ function readEnv(): unknown {
       redactionRules: process.env.SECURITY_REDACTION_RULES,
       redactionStyle: process.env.SECURITY_REDACTION_STYLE,
     },
+    incident: {
+      provider: process.env.INCIDENT_PROVIDER,
+      baseUrl: process.env.INCIDENT_BASE_URL,
+      user: process.env.INCIDENT_USER,
+      token: process.env.INCIDENT_TOKEN,
+      table: process.env.INCIDENT_SERVICENOW_TABLE,
+      callerId: process.env.INCIDENT_SERVICENOW_CALLER_ID,
+      jiraProject: process.env.INCIDENT_JIRA_PROJECT,
+      jiraIssueType: process.env.INCIDENT_JIRA_ISSUE_TYPE,
+      pagerDutyRoutingKey: process.env.INCIDENT_PAGERDUTY_ROUTING_KEY,
+      severity: process.env.INCIDENT_SEVERITY,
+      labels: process.env.INCIDENT_LABELS,
+      runbooks: process.env.INCIDENT_RUNBOOKS,
+    },
+    docs: {
+      sources: process.env.DOCS_SOURCES,
+      maxResults: process.env.DOCS_MAX_RESULTS,
+      maxExcerptChars: process.env.DOCS_MAX_EXCERPT_CHARS,
+      refreshSeconds: process.env.DOCS_REFRESH_SECONDS,
+    },
   };
 }
 

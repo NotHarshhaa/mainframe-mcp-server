@@ -46,6 +46,8 @@ export const WRITE_TOOLS = new Set([
   // CICS actions (gated writes)
   'cics_newcopy',
   'cics_disable_transaction',
+  // Incident management (external side effect: creates a ticket)
+  'create_incident_ticket',
 ]);
 
 // ---------------------------------------------------------------------------
@@ -314,6 +316,8 @@ export interface AuditCallOptions {
   errorCode?: string;
   resultChars?: number;
   dataProtection?: DataProtectionAudit;
+  /** For resource reads: the URI that was read. */
+  resourceUri?: string;
 }
 
 /**
@@ -345,6 +349,7 @@ export function auditToolCall(
       ...(opts?.outcome !== undefined && { outcome: opts.outcome }),
       ...(opts?.durationMs !== undefined && { durationMs: opts.durationMs }),
       ...(opts?.errorCode !== undefined && { errorCode: opts.errorCode }),
+      ...(opts?.resourceUri !== undefined && { resourceUri: opts.resourceUri }),
     },
     'MCP tool invocation',
   );

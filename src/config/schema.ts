@@ -147,6 +147,49 @@ export const configSchema = z
       redactionRules: z.string().optional(),
       redactionStyle: z.enum(['mask', 'token']).default('mask'),
     }),
+    // Incident-management integration: create ServiceNow / Jira / PagerDuty
+    // tickets from investigate_incident bundles (feature: incident).
+    incident: z.object({
+      // When set, create_incident_ticket is registered against this provider.
+      provider: z.enum(['servicenow', 'jira', 'pagerduty']).optional(),
+      // ServiceNow instance or Jira site root, e.g.
+      // "https://acme.service-now.com" or "https://acme.atlassian.net".
+      // PagerDuty uses the Events API endpoint; override only for testing.
+      baseUrl: z.string().optional(),
+      // ServiceNow username / Jira account email.
+      user: z.string().optional(),
+      // ServiceNow password / Jira API token (use a vault-injected env var).
+      token: z.string().optional(),
+      // ServiceNow target table (incident, change_request, …).
+      table: z.string().default('incident'),
+      // ServiceNow caller_id (sys_id) attributed on the ticket.
+      callerId: z.string().optional(),
+      // Jira project key and issue type.
+      jiraProject: z.string().optional(),
+      jiraIssueType: z.string().default('Bug'),
+      // PagerDuty Events API v2 routing key.
+      pagerDutyRoutingKey: z.string().optional(),
+      // Default PagerDuty severity / ServiceNow impact hint for new tickets.
+      severity: z.enum(['info', 'warning', 'error', 'critical']).default('error'),
+      // Comma-separated labels/tags applied to every ticket.
+      labels: z.string().optional(),
+      // JSON map of abend code (exact or glob pattern, e.g. "S0C4", "S2*", "U*")
+      // to a runbook URL. Linked into abend lookups, incident bundles, tickets.
+      runbooks: z.string().optional(),
+    }).default({}),
+    // RAG over internal documentation (feature: doc-rag). Plain files or
+    // directories of .md/.txt playbooks; retrieval is local TF-IDF — no
+    // external embedding service, no doc contents leave the host.
+    docs: z.object({
+      // Comma-separated files or directories to index.
+      sources: z.string().optional(),
+      // Maximum excerpts returned per search / attached per bundle.
+      maxResults: z.coerce.number().int().positive().max(10).default(3),
+      // Maximum characters per attached excerpt.
+      maxExcerptChars: z.coerce.number().int().positive().default(1200),
+      // Seconds before the index is rebuilt from disk (0 = index once).
+      refreshSeconds: z.coerce.number().int().min(0).default(300),
+    }).default({}),
   })
   .superRefine((cfg, ctx) => {
     const hasBasic = Boolean(cfg.zosmf.user && cfg.zosmf.password);
@@ -206,6 +249,52 @@ export const configSchema = z
         message: 'SECURITY_AUDIT_SPLUNK_URL is required when SECURITY_AUDIT_SPLUNK_TOKEN is set.',
         path: ['security', 'auditSplunkUrl'],
       });
+    }
+    // Incident integration: provider-specific credential requirements and a
+    // structural check on the runbook map (fail fast at startup, not on call).
+    if (cfg.incident.provider === 'servicenow') {
+      if (!cfg.incident.baseUrl || !cfg.incident.user || !cfg.incident.token) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'ServiceNow integration requires INCIDENT_BASE_URL, INCIDENT_USER, and INCIDENT_TOKEN.',
+          path: ['incident', 'provider'],
+        });
+      }
+    }
+    if (cfg.incident.provider === 'jira') {
+      if (!cfg.incident.baseUrl || !cfg.incident.user || !cfg.incident.token || !cfg.incident.jiraProject) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Jira integration requires INCIDENT_BASE_URL, INCIDENT_USER, INCIDENT_TOKEN, and INCIDENT_JIRA_PROJECT.',
+          path: ['incident', 'provider'],
+        });
+      }
+    }
+    if (cfg.incident.provider === 'pagerduty' && !cfg.incident.pagerDutyRoutingKey) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'PagerDuty integration requires INCIDENT_PAGERDUTY_ROUTING_KEY.',
+        path: ['incident', 'provider'],
+      });
+    }
+    if (cfg.incident.runbooks) {
+      try {
+        const parsed: unknown = JSON.parse(cfg.incident.runbooks);
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+          throw new Error('not an object');
+        }
+        for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+          if (typeof value !== 'string') throw new Error(`runbook "${key}" maps to a non-string`);
+        }
+      } catch (err) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `INCIDENT_RUNBOOKS must be a JSON object of code/pattern → URL: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+          path: ['incident', 'runbooks'],
+        });
+      }
     }
   });
 

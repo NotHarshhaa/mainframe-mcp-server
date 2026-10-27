@@ -5,10 +5,19 @@
  * window, aggregating abends, and assembling incident bundles.
  */
 import { GetJobs, type IJob } from '@zowe/zos-jobs-for-zowe-sdk';
-import type { Job } from '../../types/zos.js';
+import type { Job, AbendCodeInfo, JobFailureAnalysis } from '../../types/zos.js';
 import type { ToolContext } from '../../types/tools.js';
-import { extractAbendCode } from '../../utils/abend-codes.js';
-import { isFailedJob, normalizeJob } from '../jobs/shared.js';
+import { extractAbendCode, lookupAbend } from '../../utils/abend-codes.js';
+import { findRunbookUrl, parseRunbooks } from '../../utils/runbooks.js';
+import { formatDocExcerpts, type DocMatch } from '../../utils/doc-rag.js';
+import {
+  formatAnalysisFull,
+  formatSpoolFiles,
+  formatStructuredResponse,
+  truncateLines,
+  type StructuredSection,
+} from '../../utils/formatters.js';
+import { isFailedJob, normalizeJob, analyzeJobFailure, fetchDiagnosticSpool, fetchSpoolFiles } from '../jobs/shared.js';
 import { effectiveSession } from '../../zowe/enduser.js';
 
 /** A failed job enriched with the abend code parsed from its return code. */
@@ -73,4 +82,126 @@ export function aggregateAbends(
   return [...buckets.entries()]
     .map(([code, jobs]) => ({ code, count: jobs.length, jobs }))
     .sort((a, b) => b.count - a.count);
+}
+
+// ---------------------------------------------------------------------------
+// Incident bundle (feature: incident)
+// ---------------------------------------------------------------------------
+
+/** Everything assembled for one job incident. */
+export interface IncidentBundle {
+  job: Job;
+  analysis: JobFailureAnalysis;
+  /** Built-in reference entry for the abend code, when known. */
+  abendInfo?: AbendCodeInfo;
+  /** Organization runbook URL matched from INCIDENT_RUNBOOKS, when any. */
+  runbookUrl?: string;
+  /** Internal-documentation excerpts retrieved for the failure (RAG). */
+  docMatches: DocMatch[];
+  /** Ordered response sections (analysis, references, spool, excerpts). */
+  sections: StructuredSection[];
+  /** The full formatted bundle text (same content as `sections`). */
+  formatted: string;
+}
+
+/**
+ * Assemble the full investigation bundle for a job: failure analysis, abend
+ * reference, runbook link, internal-documentation (RAG) excerpts, spool
+ * inventory, and diagnostic excerpts from all relevant DDs.
+ *
+ * Consumed by `investigate_incident` and by `create_incident_ticket` so a
+ * ticket always carries the same evidence the agent investigated.
+ */
+export async function buildIncidentBundle(
+  ctx: ToolContext,
+  jobId: string,
+  opts?: { maxExcerptLines?: number; includeDocs?: boolean },
+): Promise<IncidentBundle> {
+  const excerptLines = opts?.maxExcerptLines ?? 80;
+
+  const analysis = await analyzeJobFailure(ctx, jobId);
+  const job = analysis.job;
+  const spoolFiles = await fetchSpoolFiles(ctx, job.jobName, job.jobId);
+
+  // Rich failure analysis (summary + evidence + remediation)
+  const analysisFull = formatAnalysisFull(analysis, { includeEvidence: true });
+
+  // Inline abend code reference when we have a known code
+  const abendInfo = analysis.abendCode ? lookupAbend(analysis.abendCode) : undefined;
+  const abendReference = abendInfo
+    ? `${abendInfo.code} — ${abendInfo.title}\n${abendInfo.suggestedFix}`
+    : analysis.abendCode
+      ? `Abend code ${analysis.abendCode} has no reference entry in the local catalog.`
+      : 'No abend code detected.';
+
+  // Organization runbook link, when INCIDENT_RUNBOOKS matches the code.
+  const runbooks = parseRunbooks(ctx.config.incident.runbooks);
+  const runbookUrl = findRunbookUrl(analysis.abendCode, runbooks);
+
+  // Internal documentation excerpts (RAG over DOCS_SOURCES).
+  let docMatches: DocMatch[] = [];
+  if (opts?.includeDocs !== false && ctx.docIndex && analysis.abendCode) {
+    try {
+      docMatches = ctx.docIndex.search(analysis.abendCode, ctx.config.docs.maxResults);
+    } catch (err) {
+      ctx.logger.warn({ err }, 'doc-rag: retrieval failed; continuing without excerpts');
+    }
+  }
+
+  const sections: StructuredSection[] = [
+    { heading: 'Failure analysis', body: analysisFull },
+    {
+      heading: `Abend reference (${analysis.abendCode ?? 'N/A'})`,
+      body: abendReference,
+    },
+  ];
+  if (runbookUrl) {
+    sections.push({
+      heading: `Runbook (${analysis.abendCode ?? 'general'})`,
+      body: `${runbookUrl}\nFollow the organization runbook above for environment-specific remediation.`,
+    });
+  }
+  if (docMatches.length > 0) {
+    sections.push({
+      heading: 'Internal documentation (RAG)',
+      body: formatDocExcerpts(docMatches, ctx.config.docs.maxExcerptChars),
+    });
+  }
+  sections.push({
+    heading: 'Spool inventory',
+    body: formatSpoolFiles(job.jobName, job.jobId, spoolFiles),
+  });
+
+  // Collect diagnostic excerpts from ALL relevant DDs (not just the first)
+  if (analysis.abendCode || analysis.failedStep || analysis.cancelledStep) {
+    const diags = await fetchDiagnosticSpool(ctx, job.jobName, job.jobId);
+    for (const diag of diags) {
+      const { text, truncated, totalLines } = truncateLines(diag.text, excerptLines);
+      const suffix = truncated
+        ? `\n... [showing first ${excerptLines} of ${totalLines} lines — increase maxExcerptLines for more]`
+        : '';
+      sections.push({
+        heading: `Diagnostic excerpt — ${diag.ddName}`,
+        body: text + suffix,
+      });
+    }
+  }
+
+  ctx.logger.debug(
+    { jobId, abendCode: analysis.abendCode, excerptSections: sections.length },
+    'incident bundle assembled',
+  );
+
+  return {
+    job,
+    analysis,
+    ...(abendInfo ? { abendInfo } : {}),
+    ...(runbookUrl ? { runbookUrl } : {}),
+    docMatches,
+    sections,
+    formatted: formatStructuredResponse(
+      `Incident Investigation — ${job.jobName} (${job.jobId})`,
+      sections,
+    ),
+  };
 }

@@ -159,7 +159,9 @@ counts of active/queued/failed jobs, and the top abend codes.
 | `jobId` | string | yes | JES job id to investigate. |
 
 **Output:** a numbered multi-section bundle — status, root-cause analysis, spool
-inventory, and a diagnostic spool excerpt.
+inventory, and a diagnostic spool excerpt. When configured, the bundle also
+includes the matching **runbook link** (`INCIDENT_RUNBOOKS`) and **internal
+documentation excerpts** (`DOCS_SOURCES`, RAG).
 
 ### `lookup_abend_code`
 
@@ -172,6 +174,9 @@ Look up abend codes from the built-in reference table (no z/OSMF call required).
 
 **Output:** detailed reference entry for a single code, or a catalog table when
 `code` is omitted. Includes explanation, common causes, and suggested fix.
+For a single-code lookup the response also includes the matched **runbook
+link** (when `INCIDENT_RUNBOOKS` matches) and **internal documentation
+excerpts** (when `DOCS_SOURCES` is configured).
 
 Known codes include **S0C1**, **S0C4**, **S0C7**, **S806**, **S222**, **S322**,
 **S913**, **U0100**, **U4038**, and others — see `lookup_abend_code` with no
@@ -539,6 +544,93 @@ No inputs.
    count.
 
 Use it to verify RBAC wiring before granting broader access.
+
+## Incident Tools
+
+### `create_incident_ticket`
+
+Registered only when an incident provider is configured (`INCIDENT_*`
+variables — see [docs/configuration.md](configuration.md)). Rebuilds the full
+`investigate_incident` bundle for a job and files it as a ServiceNow incident,
+Jira issue, or PagerDuty incident. Governed as a write: blocked by
+`SECURITY_READ_ONLY`, subject to policy RBAC, audited.
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `jobId` | string | yes | JES job id to file the incident for. |
+| `summary` | string | no | Ticket title. Defaults to `<jobname> (<jobid>) failed with <code>`. |
+| `severity` | enum(`info`,`warning`,`error`,`critical`) | no | Ticket severity (default `INCIDENT_SEVERITY`, `error`). |
+| `requester` | string | no | Reporting identity recorded in the ticket. |
+| `maxExcerptLines` | number | no | Lines per diagnostic spool excerpt embedded in the ticket (default 80). |
+
+**Output:** ticket key and URL (when the provider returns one), the job and
+abend code filed, the attached runbook link (when `INCIDENT_RUNBOOKS`
+matched), and a summary of what was embedded.
+
+PagerDuty notes: the ticket is an Events API v2 trigger with a dedup key of
+`mainframe-<jobname>-<jobid>`, so repeated triggers for the same failure
+deduplicate instead of re-paging on-call.
+
+## Internal Documentation Tools (RAG)
+
+### `search_internal_docs`
+
+Registered only when `DOCS_SOURCES` is configured. Retrieves excerpts from
+the organization's internal documentation (local `.md`/`.txt` runbooks and
+playbooks) using local TF-IDF — no external services.
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `query` | string | yes | Free-text query, e.g. `S0C7 payroll fix`. |
+| `maxResults` | number | no | Maximum excerpts (default `DOCS_MAX_RESULTS`, 3). |
+| `refresh` | boolean | no | Force a re-index from disk before searching. |
+
+**Output:** numbered excerpts, each with `file — heading` attribution, plus a
+warning when configured sources resolved to no files.
+
+Excerpts are also attached automatically to `investigate_incident` bundles and
+`lookup_abend_code` results when the index is configured.
+
+## Prompts
+
+Reusable MCP prompts surfaced by clients as playbook commands (see
+[README — Prompts & resources](../README.md#prompts--resources-mcp-native-surface)):
+
+| Prompt | Arguments | Purpose |
+|---|---|---|
+| `triage_failed_job` | `jobId?`, `hours?` | Triage one failed job or every failure in a window: investigate, check runbooks/docs, optionally file a ticket |
+| `morning_batch_health_check` | `lookbackHours?` | Overnight health check: system health, failures, abend trends, prediction, capacity, storage |
+| `investigate_abend` | `code` | Deep-dive one abend code: reference, internal docs, recent occurrences, remediation plan |
+
+## Resources
+
+Addressable read-only URIs. Every read is gated like the equivalent tool
+(`get_job_output`, `read_dataset`, `get_dataset_info`, `lookup_abend_code`),
+so dataset boundaries, RBAC, data-protection masking, and audit apply
+unchanged. Resource reads resolve against the default environment.
+
+| URI | Gate | Returns |
+|---|---|---|
+| `mainframe://jobs/{jobId}/spool` | `get_job_output` | Spool file (DD) inventory |
+| `mainframe://jobs/{jobId}/spool/{ddName}` | `get_job_output` | One DD's spool content (line-capped) |
+| `mainframe://datasets/{dsn}` | `get_dataset_info` | PDS/PDSE member listing |
+| `mainframe://datasets/{dsn}/members/{member}` | `read_dataset` | Member content (line-capped) |
+| `mainframe://reference/abend-codes` | `lookup_abend_code` | Built-in abend reference catalog |
+
+## Tool annotations
+
+Every tool advertises MCP annotations derived from the server's own write-tool
+registry, so hint-based client confirmations agree with the enforced gates:
+
+- **Reads** (`list_jobs`, `read_dataset`, `investigate_incident`, …):
+  `readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`.
+- **Governed writes** (`submit_jcl`, `approve_write`, `hold_job`, …):
+  `readOnlyHint: false`.
+- **Destructive operations** (`submit_jcl`, `cancel_job`,
+  `issue_console_command`, `cics_disable_transaction`, …): additionally
+  `destructiveHint: true`.
+- **External side effects** (`create_incident_ticket`): `readOnlyHint: false`
+  but `destructiveHint: false` (creates, never destroys).
 
 ## Error Codes
 

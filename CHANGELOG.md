@@ -4,6 +4,51 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Incident-management integration.** `create_incident_ticket` rebuilds the
+  `investigate_incident` bundle (failure analysis, abend reference, runbook
+  link, internal-doc excerpts, spool inventory, diagnostic excerpts) and files
+  it as a **ServiceNow** incident (Table API, `INCIDENT_SERVICENOW_TABLE`),
+  a **Jira** issue (REST v3 with Atlassian Document Format descriptions,
+  `INCIDENT_JIRA_PROJECT`), or a **PagerDuty** incident (Events API v2 with
+  job-derived dedup keys, `INCIDENT_PAGERDUTY_ROUTING_KEY`) — selected by
+  `INCIDENT_PROVIDER`. Governed as a write (blocked by `SECURITY_READ_ONLY`,
+  subject to policy RBAC, audited).
+- **Runbook linking.** `INCIDENT_RUNBOOKS` holds a JSON map of abend code
+  (exact or glob pattern, e.g. `"S0C7"`, `"S2*"`, `"U*"`) to a runbook URL.
+  Matching links are attached to `lookup_abend_code` results, incident
+  bundles, and created tickets.
+- **RAG over internal documentation.** Point `DOCS_SOURCES` at local
+  `.md`/`.txt` playbooks and runbooks; the server indexes them locally
+  (TF-IDF, zero dependencies, nothing leaves the host) and attaches the most
+  relevant excerpts to `investigate_incident` bundles and abend lookups,
+  alongside the built-in abend reference. New `search_internal_docs` tool for
+  direct retrieval; index refreshes on a `DOCS_REFRESH_SECONDS` TTL.
+- **MCP prompts.** The server now exposes reusable prompts next to tools:
+  `triage_failed_job` (single job or a failure window),
+  `morning_batch_health_check` (overnight standup walkthrough), and
+  `investigate_abend` (deep dive on one code). Prompts mention
+  `create_incident_ticket` / `search_internal_docs` only when the
+  corresponding integration is configured.
+- **MCP resources.** Addressable read-only resources alongside the tools:
+  `mainframe://jobs/{jobId}/spool` (inventory),
+  `mainframe://jobs/{jobId}/spool/{ddName}` (DD content),
+  `mainframe://datasets/{dsn}` (member listing),
+  `mainframe://datasets/{dsn}/members/{member}` (member content), and the
+  static `mainframe://reference/abend-codes` catalog. Every read is gated like
+  the equivalent tool (`read_dataset` / `get_job_output` /
+  `lookup_abend_code`) — dataset boundaries, RBAC, data-protection masking,
+  and audit apply unchanged.
+- **Tool annotations.** Every tool now advertises MCP annotations
+  (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `title`) derived from
+  the write-tool registry, so hint-based client confirmations agree with the
+  server's own security gates. `create_incident_ticket` is a non-destructive
+  write; `submit_jcl`, `cancel_job`, `issue_console_command`, and friends are
+  flagged destructive.
+
 ## [3.0.0] — 2026-10-25
 
 ### Added
